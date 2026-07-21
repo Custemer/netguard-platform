@@ -13,7 +13,7 @@ const api = axios.create({
 
 // Auto-attach token
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('ng_token');
+  const token = localStorage.getItem('ng_token') || sessionStorage.getItem('ng_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -26,6 +26,7 @@ api.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('ng_token');
+      sessionStorage.removeItem('ng_token');
       window.location.href = '/login';
     }
     return Promise.reject(err);

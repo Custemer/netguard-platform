@@ -4,12 +4,15 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const User = require('../models/User');
+const {
+  adminLoginEmail,
+  adminPassword,
+  isAdminUsername,
+  isOwnerEmail,
+  normalizeEmail,
+} = require('../lib/adminIdentity');
 
 const router = express.Router();
-
-function normalizeEmail(value = '') {
-  return value.trim().toLowerCase();
-}
 
 function signToken(user) {
   return jwt.sign(
@@ -62,6 +65,9 @@ router.post('/register', async (req, res) => {
     if (password.length < 8 || password.length > 128) {
       return res.status(400).json({ success: false, message: 'Password must be 8-128 characters' });
     }
+    if (email === adminLoginEmail()) {
+      return res.status(409).json({ success: false, message: 'This email is reserved for the administrator account' });
+    }
 
     const existing = await User.findOne({ email });
     if (existing) {
@@ -69,13 +75,12 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ success: false, message });
     }
 
-    const adminEmail = normalizeEmail(process.env.ADMIN_EMAIL);
     const user = await User.create({
       name,
       email,
       password: await bcrypt.hash(password, 12),
       authProvider: 'local',
-      role: email === adminEmail ? 'admin' : 'user',
+      role: isOwnerEmail(email) ? 'admin' : 'user',
       lastLogin: new Date(),
     });
 
@@ -88,12 +93,38 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const email = normalizeEmail(req.body.email);
+    const identifier = String(req.body.identifier || req.body.email || '').trim();
     const password = String(req.body.password || '');
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password are required' });
+    if (!identifier || !password) {
+      return res.status(400).json({ success: false, message: 'Username/email and password are required' });
     }
 
+    if (isAdminUsername(identifier)) {
+      const configuredPassword = adminPassword();
+      if (!safeEqual(password, configuredPassword)) {
+        return res.status(401).json({ success: false, message: 'Invalid username or password' });
+      }
+
+      const email = adminLoginEmail();
+      let user = await User.findOne({ email });
+      if (!user) {
+        user = new User({
+          name: 'Administrator',
+          email,
+          authProvider: 'local',
+        });
+      }
+      if (!user.password || !(await bcrypt.compare(configuredPassword, user.password))) {
+        user.password = await bcrypt.hash(configuredPassword, 12);
+      }
+      user.role = 'admin';
+      user.authProvider = user.googleId ? 'local+google' : 'local';
+      user.lastLogin = new Date();
+      await user.save();
+      return res.json({ success: true, user: publicUser(user), token: signToken(user) });
+    }
+
+    const email = normalizeEmail(identifier);
     const user = await User.findOne({ email });
     if (!user || !user.password) {
       const message = user ? 'This account uses Google sign-in' : 'Invalid email or password';
@@ -103,8 +134,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
-    const adminEmail = normalizeEmail(process.env.ADMIN_EMAIL);
-    user.role = email === adminEmail ? 'admin' : 'user';
+    user.role = isOwnerEmail(email) ? 'admin' : 'user';
     user.lastLogin = new Date();
     await user.save();
     res.json({ success: true, user: publicUser(user), token: signToken(user) });
@@ -172,7 +202,7 @@ router.get('/me', async (req, res) => {
     });
     const user = await User.findById(decoded.id).select('-password -googleId');
     if (!user) return res.status(401).json({ success: false, message: 'User not found' });
-    const expectedRole = normalizeEmail(user.email) === normalizeEmail(process.env.ADMIN_EMAIL) ? 'admin' : 'user';
+    const expectedRole = isOwnerEmail(user.email) ? 'admin' : 'user';
     if (user.role !== expectedRole) {
       user.role = expectedRole;
       await user.save();

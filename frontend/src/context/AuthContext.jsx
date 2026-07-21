@@ -3,6 +3,10 @@ import api, { apiUrl } from '../services/api';
 
 const AuthContext = createContext(null);
 
+function storedToken() {
+  return localStorage.getItem('ng_token') || sessionStorage.getItem('ng_token');
+}
+
 function tokenFromCallback() {
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   const query = new URLSearchParams(window.location.search);
@@ -12,14 +16,16 @@ function tokenFromCallback() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setTokenState] = useState(() => localStorage.getItem('ng_token'));
+  const [token, setTokenState] = useState(storedToken);
 
-  const persistToken = (nextToken) => {
+  const persistToken = (nextToken, remember = true) => {
+    localStorage.removeItem('ng_token');
+    sessionStorage.removeItem('ng_token');
     if (nextToken) {
-      localStorage.setItem('ng_token', nextToken);
+      const storage = remember ? localStorage : sessionStorage;
+      storage.setItem('ng_token', nextToken);
       api.defaults.headers.common.Authorization = `Bearer ${nextToken}`;
     } else {
-      localStorage.removeItem('ng_token');
       delete api.defaults.headers.common.Authorization;
     }
     setTokenState(nextToken || null);
@@ -43,7 +49,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const callbackToken = tokenFromCallback();
-    const activeToken = callbackToken || localStorage.getItem('ng_token');
+    const activeToken = callbackToken || storedToken();
 
     if (!activeToken) {
       setLoading(false);
@@ -71,8 +77,8 @@ export function AuthProvider({ children }) {
     window.location.assign(apiUrl('/api/auth/google'));
   };
 
-  const setToken = (nextToken, nextUser = null) => {
-    persistToken(nextToken);
+  const setToken = (nextToken, nextUser = null, remember = true) => {
+    persistToken(nextToken, remember);
     if (nextUser) setUser(nextUser);
   };
 
@@ -84,7 +90,7 @@ export function AuthProvider({ children }) {
   };
 
   const refreshUser = async () => {
-    const activeToken = localStorage.getItem('ng_token');
+    const activeToken = storedToken();
     if (activeToken) await loadUser(activeToken);
   };
 

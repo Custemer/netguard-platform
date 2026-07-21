@@ -41,6 +41,9 @@ Set these environment variables:
 | `FRONTEND_URL` | Exact Vercel production URL, without a trailing slash |
 | `CORS_ORIGINS` | Exact Vercel production URL; add extra exact origins separated by commas only if needed |
 | `ADMIN_EMAIL` | Email that should receive the admin role |
+| `ADMIN_USERNAME` | Local administrator username; defaults to `admin` |
+| `ADMIN_PASSWORD` | Local administrator password; defaults to `admin` for the requested project demo |
+| `ADMIN_LOGIN_EMAIL` | Internal local administrator identity; defaults to `admin@netguard.local` |
 | `GOOGLE_CLIENT_ID` | Added after step 5 |
 | `GOOGLE_CLIENT_SECRET` | Added after step 5 |
 | `GOOGLE_CALLBACK_URL` | `https://YOUR-RENDER-SERVICE.onrender.com/api/auth/google/callback` |
@@ -51,6 +54,8 @@ Set these environment variables:
 | `SITE_EVENT_RETENTION_DAYS` | Protected-website event retention, default `180` |
 
 Record the Render URL and confirm `https://YOUR-RENDER-SERVICE.onrender.com/api/health` returns JSON.
+
+The local demo administrator is created automatically on its first successful login. The requested default is `admin` / `admin`. Change `ADMIN_PASSWORD` before using the project outside a controlled demonstration.
 
 The health response should show `version: "3.4.0"`, `geminiAssistant: true`, `websiteProtection: true`, `perSiteProtectionControls: true`, `automaticSitePostureScans: true`, and `recaptchaProtection: true` after the optional reCAPTCHA keys are configured. Never put `GEMINI_API_KEY` or `RECAPTCHA_SECRET_KEY` in Vercel, the extension, a protected website, or GitHub.
 

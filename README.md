@@ -9,13 +9,13 @@ NetGuard Pro is a Chrome Manifest V3 browser-security project with an optional c
 - DOM checks for hidden iframes, insecure password forms, XSS-like URL payloads, redirects, and crypto-miner scripts
 - Privacy-preserving HIBP Pwned Passwords check using the k-Anonymity range endpoint
 - Server-side TLS certificate, negotiated protocol, cipher, expiry, and HSTS inspection
-- Google OAuth and local email/password authentication
+- Google OAuth and local username-or-email/password authentication
 - MongoDB-backed threat dashboard and admin panel
 - Public extension installer and sign-in-independent update notifications
 - Privacy-preserving domain-level browsing analytics (no normal browsing paths or queries)
 - One-click PDF security reports for 7, 30, or 90 day periods
 - Gemini security assistant with continuous chat and screenshot analysis
-- Owner-only admin controls tied to `ADMIN_EMAIL`
+- Owner-only admin controls with a local demo administrator and optional Google owner `ADMIN_EMAIL`
 - Separate Web Browsing and Protected Website report filters with full PDF export
 - Real protected-website telemetry stored in MongoDB
 - Origin-bound website SDK with form shield, repeat detection, rate analysis, bot signals, reCAPTCHA, throttling, and temporary blocks

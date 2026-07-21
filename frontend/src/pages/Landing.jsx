@@ -35,15 +35,9 @@ export default function Landing() {
             <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-mono">v2.0</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/install">
-              <button className="btn-ghost text-sm">Install Extension</button>
-            </Link>
-            <Link to="/login">
-              <button className="btn-ghost text-sm">Sign In</button>
-            </Link>
-            <button onClick={login} className="btn-primary text-sm">
+            <Link to="/login" className="btn-primary text-sm">
               Get Started Free
-            </button>
+            </Link>
           </div>
         </div>
       </nav>
