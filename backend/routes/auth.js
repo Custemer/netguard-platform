@@ -3,6 +3,7 @@ const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const {
   adminLoginEmail,
@@ -13,6 +14,18 @@ const {
 } = require('../lib/adminIdentity');
 
 const router = express.Router();
+
+const passwordAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: process.env.NODE_ENV === 'production' ? 20 : 200,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: {
+    success: false,
+    message: 'Too many sign-in attempts; please wait 15 minutes and try again.',
+  },
+});
 
 function signToken(user) {
   return jwt.sign(
@@ -50,7 +63,7 @@ function safeEqual(left, right) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-router.post('/register', async (req, res) => {
+router.post('/register', passwordAuthLimiter, async (req, res) => {
   try {
     const name = String(req.body.name || '').trim();
     const email = normalizeEmail(req.body.email);
@@ -91,7 +104,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', passwordAuthLimiter, async (req, res) => {
   try {
     const identifier = String(req.body.identifier || req.body.email || '').trim();
     const password = String(req.body.password || '');

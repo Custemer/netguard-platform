@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
+const { skipGlobalApiLimit } = require('./lib/rateLimitPolicy');
 
 const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
@@ -65,6 +66,10 @@ const apiLimiter = rateLimit({
   limit: process.env.NODE_ENV === 'production' ? 300 : 1000,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  // OAuth navigation must never be blocked by unrelated dashboard/extension
+  // traffic from the same public IP. Password endpoints have their own,
+  // tighter limiter in routes/auth.js.
+  skip: skipGlobalApiLimit,
   message: { success: false, message: 'Too many requests; please try again later.' },
 });
 app.use('/api', apiLimiter);
