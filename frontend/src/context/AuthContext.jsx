@@ -7,6 +7,20 @@ function storedToken() {
   return localStorage.getItem('ng_token') || sessionStorage.getItem('ng_token');
 }
 
+function storedUser() {
+  const value = localStorage.getItem('ng_user') || sessionStorage.getItem('ng_user');
+  if (!value) return null;
+  try { return JSON.parse(value); }
+  catch { return null; }
+}
+
+function clearStoredAuth() {
+  localStorage.removeItem('ng_token');
+  sessionStorage.removeItem('ng_token');
+  localStorage.removeItem('ng_user');
+  sessionStorage.removeItem('ng_user');
+}
+
 function tokenFromCallback() {
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   const query = new URLSearchParams(window.location.search);
@@ -14,7 +28,7 @@ function tokenFromCallback() {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(storedUser);
   const [loading, setLoading] = useState(true);
   const [token, setTokenState] = useState(storedToken);
 
@@ -31,17 +45,35 @@ export function AuthProvider({ children }) {
     setTokenState(nextToken || null);
   };
 
+  const persistUser = (nextUser, remember = true) => {
+    localStorage.removeItem('ng_user');
+    sessionStorage.removeItem('ng_user');
+    if (nextUser) {
+      const storage = remember ? localStorage : sessionStorage;
+      storage.setItem('ng_user', JSON.stringify(nextUser));
+    }
+  };
+
   const loadUser = async (activeToken) => {
     try {
       api.defaults.headers.common.Authorization = `Bearer ${activeToken}`;
       const response = await api.get('/api/auth/me');
       if (!response.data.success) throw new Error('Authentication failed');
       setUser(response.data.user);
+      persistUser(response.data.user, localStorage.getItem('ng_token') === activeToken);
       return response.data.user;
-    } catch {
-      persistToken(null);
-      setUser(null);
-      return null;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        clearStoredAuth();
+        delete api.defaults.headers.common.Authorization;
+        setTokenState(null);
+        setUser(null);
+        return null;
+      }
+      // A temporary 429/network failure must not destroy a valid session.
+      const cachedUser = storedUser();
+      setUser(cachedUser);
+      return cachedUser;
     } finally {
       setLoading(false);
     }
@@ -56,7 +88,8 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    persistToken(activeToken);
+    const remember = Boolean(callbackToken || localStorage.getItem('ng_token') === activeToken);
+    persistToken(activeToken, remember);
     loadUser(activeToken).then((loadedUser) => {
       if (callbackToken) {
         // React Router does not observe a bare history.replaceState call here.
@@ -79,12 +112,17 @@ export function AuthProvider({ children }) {
 
   const setToken = (nextToken, nextUser = null, remember = true) => {
     persistToken(nextToken, remember);
-    if (nextUser) setUser(nextUser);
+    if (nextUser) {
+      persistUser(nextUser, remember);
+      setUser(nextUser);
+    }
   };
 
   const logout = () => {
     window.postMessage({ source: 'NETGUARD_WEB', type: 'NETGUARD_LOGOUT' }, window.location.origin);
-    persistToken(null);
+    clearStoredAuth();
+    delete api.defaults.headers.common.Authorization;
+    setTokenState(null);
     setUser(null);
     window.location.assign('/');
   };

@@ -1,4 +1,4 @@
-# NetGuard Pro v3.5 — Viva Demo Guide
+# NetGuard Pro Platform v3.5.1 — Viva Demo Guide
 
 ## 1. Configure the independent administrator login
 
@@ -49,10 +49,9 @@ The warning uses a deterministic local URL risk engine, so this demonstration st
 
 ## 4. Final checks before presenting
 
-- Render `/api/health` returns `version: "3.5.0"`.
+- Render `/api/health` returns `version: "3.5.1"` and `adminRecoveryConfigured: true`.
 - Vercel displays NetGuard v3.5.
 - `admin / admin` local recovery login works.
 - Google Sign-In can be shown separately if available.
 - The extension is paired with the dashboard if cloud reporting is part of the demo.
 - Protection is Active before opening the safe warning-test URL.
-

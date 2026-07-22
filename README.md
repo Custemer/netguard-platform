@@ -1,6 +1,6 @@
-# NetGuard Pro v3.5
+# NetGuard Pro Platform v3.5.1
 
-The v3.5 release adds an automatic blurred unsafe-site interstitial with a 10-second safety return, explicit Continue/Back decisions, and an independent server-side administrator recovery login. See `VIVA_DEMO_GUIDE.md` for the safe demonstration flow and `EXTENSION_V3_5_TEST_REPORT.md` for verification evidence.
+Platform v3.5.1 fixes the shared Render API quota that could disable dashboard buttons and sign-in. It gives every verified JWT its own protected request bucket, keeps health/Google OAuth/admin recovery outside the shared quota, preserves sessions during temporary 429/network failures, and deduplicates API error notifications. The Chrome extension remains v3.5.0 with its blurred unsafe-site interstitial, 10-second safety return, Continue/Back decisions, and server-side administrator recovery login.
 
 NetGuard Pro is a Chrome Manifest V3 browser-security project with an optional cloud dashboard.
 
@@ -45,6 +45,7 @@ render.yaml Render Blueprint
 5. Open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select `extension/`.
 
 For the production sequence and all environment variables, follow `DEPLOYMENT_GUIDE.md`.
+For the current live-site repair, follow `DEPLOY_V3_5_1_HOTFIX.md`.
 For website installation, testing, privacy, and DDoS boundaries, follow `WEBSITE_PROTECTION_GUIDE.md`.
 
 ## Important distribution limitation

@@ -3,7 +3,7 @@ import { Activity, AlertTriangle, Bot, Download, Eye, Globe2, Lock, RefreshCw, S
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { jsPDF } from 'jspdf';
 import { autoTable } from 'jspdf-autotable';
-import api from '../services/api';
+import api, { notifyApiError } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -39,7 +39,7 @@ export default function Analytics() {
       const response = await api.get('/api/dashboard/analytics', { params: { days } });
       setData(response.data.data);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not load analytics');
+      notifyApiError(error, 'Could not load analytics');
     } finally {
       setLoading(false);
     }

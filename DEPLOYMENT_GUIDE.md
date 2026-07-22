@@ -44,6 +44,7 @@ Set these environment variables:
 | `ADMIN_USERNAME` | Local recovery administrator username; keep `admin` for the viva |
 | `ADMIN_PASSWORD` | Required server-side recovery password; set `admin` only for the controlled viva, then change it |
 | `ADMIN_LOGIN_EMAIL` | Internal local administrator identity; defaults to `admin@netguard.local` |
+| `API_RATE_LIMIT_MAX` | Per verified user/extension token limit per 15 minutes; use `3000` |
 | `GOOGLE_CLIENT_ID` | Added after step 5 |
 | `GOOGLE_CLIENT_SECRET` | Added after step 5 |
 | `GOOGLE_CALLBACK_URL` | `https://YOUR-RENDER-SERVICE.onrender.com/api/auth/google/callback` |
@@ -57,7 +58,9 @@ Record the Render URL and confirm `https://YOUR-RENDER-SERVICE.onrender.com/api/
 
 The local administrator is created automatically on its first successful recovery login. For the requested viva fallback, set `ADMIN_USERNAME=admin` and `ADMIN_PASSWORD=admin` in Render. The password is never stored in the website or extension source. Change `ADMIN_PASSWORD` immediately after the controlled demonstration. The dedicated `/api/auth/admin-login` route has its own failed-attempt limiter, so unrelated extension traffic or Google OAuth quota errors cannot consume its shared API allowance.
 
-The health response should show `version: "3.5.0"`, `geminiAssistant: true`, `websiteProtection: true`, `perSiteProtectionControls: true`, `automaticSitePostureScans: true`, and `recaptchaProtection: true` after the optional reCAPTCHA keys are configured. Never put `GEMINI_API_KEY` or `RECAPTCHA_SECRET_KEY` in Vercel, the extension, a protected website, or GitHub.
+The health response should show `version: "3.5.1"`, `adminRecoveryConfigured: true`, `apiRateLimitPerClient: 3000`, `geminiAssistant: true`, `websiteProtection: true`, `perSiteProtectionControls: true`, `automaticSitePostureScans: true`, and `recaptchaProtection: true` after the optional reCAPTCHA keys are configured. Never put `GEMINI_API_KEY` or `RECAPTCHA_SECRET_KEY` in Vercel, the extension, a protected website, or GitHub.
+
+Important: a Vercel deployment updates only the frontend. After every backend change, open the Render service and deploy the latest GitHub commit. If `/api/health` reports an older version, the old backend is still running.
 
 ## 5. Configure Google OAuth
 
