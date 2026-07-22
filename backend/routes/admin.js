@@ -140,7 +140,7 @@ router.get('/threat-trend', authenticate, isAdmin, async (req, res) => {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
           count: { $sum: 1 },
-          blocked: { $sum: { $cond: [{ $eq: ['$action', 'blocked'] }, 1, 0] } },
+          blocked: { $sum: { $cond: [{ $in: ['$action', ['blocked', 'auto-returned']] }, 1, 0] } },
         },
       },
       { $sort: { _id: 1 } },

@@ -22,7 +22,10 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
+      const isAdminFallback = !isRegister && form.identifier.trim().toLowerCase() === 'admin';
+      const endpoint = isRegister
+        ? '/api/auth/register'
+        : isAdminFallback ? '/api/auth/admin-login' : '/api/auth/login';
       const payload = isRegister
         ? { name: form.name, email: form.identifier, password: form.password }
         : { identifier: form.identifier, password: form.password };
@@ -178,7 +181,7 @@ export default function Login() {
 
           <div className="mt-6 pt-4 border-t border-border">
             <p className="text-xs text-gray-600">
-              NetGuard Cloud Platform v3.4 – Final Year Project<br/>
+              NetGuard Cloud Platform v3.5 – Final Year Project<br/>
               Network & Cloud Security | 2026
             </p>
           </div>

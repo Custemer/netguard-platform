@@ -15,7 +15,11 @@ function adminLoginEmail() {
 }
 
 function adminPassword() {
-  return String(process.env.ADMIN_PASSWORD || 'admin');
+  return String(process.env.ADMIN_PASSWORD || '');
+}
+
+function adminLoginIsConfigured() {
+  return Boolean(adminUsername() && adminPassword());
 }
 
 function isAdminUsername(value) {
@@ -31,6 +35,7 @@ function isOwnerEmail(value) {
 
 module.exports = {
   adminLoginEmail,
+  adminLoginIsConfigured,
   adminPassword,
   adminUsername,
   isAdminUsername,

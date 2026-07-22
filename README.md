@@ -1,4 +1,6 @@
-# NetGuard Pro v3.4
+# NetGuard Pro v3.5
+
+The v3.5 release adds an automatic blurred unsafe-site interstitial with a 10-second safety return, explicit Continue/Back decisions, and an independent server-side administrator recovery login. See `VIVA_DEMO_GUIDE.md` for the safe demonstration flow and `EXTENSION_V3_5_TEST_REPORT.md` for verification evidence.
 
 NetGuard Pro is a Chrome Manifest V3 browser-security project with an optional cloud dashboard.
 

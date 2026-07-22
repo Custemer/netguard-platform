@@ -17,6 +17,11 @@ test('health checks bypass the shared API quota', () => {
   assert.equal(skipGlobalApiLimit(request('GET', '/api/health')), true);
 });
 
+test('administrator recovery login bypasses only the shared quota', () => {
+  assert.equal(skipGlobalApiLimit(request('POST', '/api/auth/admin-login')), true);
+  assert.equal(skipGlobalApiLimit(request('GET', '/api/auth/admin-login')), false);
+});
+
 test('normal API and password-auth requests remain globally rate limited', () => {
   assert.equal(skipGlobalApiLimit(request('GET', '/api/dashboard/overview')), false);
   assert.equal(skipGlobalApiLimit(request('POST', '/api/auth/login')), false);

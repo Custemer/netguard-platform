@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const {
   adminLoginEmail,
+  adminLoginIsConfigured,
   adminPassword,
   isAdminUsername,
   isOwnerEmail,
@@ -24,6 +25,18 @@ const passwordAuthLimiter = rateLimit({
   message: {
     success: false,
     message: 'Too many sign-in attempts; please wait 15 minutes and try again.',
+  },
+});
+
+const adminAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: process.env.NODE_ENV === 'production' ? 10 : 100,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: {
+    success: false,
+    message: 'Too many administrator sign-in attempts; please wait 15 minutes and try again.',
   },
 });
 
@@ -62,6 +75,48 @@ function safeEqual(left, right) {
   const b = Buffer.from(right);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
+
+async function completeAdminLogin(identifier, password, res) {
+  if (!isAdminUsername(identifier) || !adminLoginIsConfigured()) {
+    return res.status(401).json({ success: false, message: 'Invalid username or password' });
+  }
+  const configuredPassword = adminPassword();
+  if (!safeEqual(password, configuredPassword)) {
+    return res.status(401).json({ success: false, message: 'Invalid username or password' });
+  }
+
+  const email = adminLoginEmail();
+  let user = await User.findOne({ email });
+  if (!user) {
+    user = new User({
+      name: 'Administrator',
+      email,
+      authProvider: 'local',
+    });
+  }
+  if (!user.password || !(await bcrypt.compare(configuredPassword, user.password))) {
+    user.password = await bcrypt.hash(configuredPassword, 12);
+  }
+  user.role = 'admin';
+  user.authProvider = user.googleId ? 'local+google' : 'local';
+  user.lastLogin = new Date();
+  await user.save();
+  return res.json({ success: true, user: publicUser(user), token: signToken(user) });
+}
+
+router.post('/admin-login', adminAuthLimiter, async (req, res) => {
+  try {
+    const identifier = String(req.body.identifier || '').trim();
+    const password = String(req.body.password || '');
+    if (!identifier || !password) {
+      return res.status(400).json({ success: false, message: 'Username and password are required' });
+    }
+    return await completeAdminLogin(identifier, password, res);
+  } catch (error) {
+    console.error('[auth/admin-login]', error.message);
+    return res.status(500).json({ success: false, message: 'Administrator sign-in failed' });
+  }
+});
 
 router.post('/register', passwordAuthLimiter, async (req, res) => {
   try {
@@ -113,28 +168,7 @@ router.post('/login', passwordAuthLimiter, async (req, res) => {
     }
 
     if (isAdminUsername(identifier)) {
-      const configuredPassword = adminPassword();
-      if (!safeEqual(password, configuredPassword)) {
-        return res.status(401).json({ success: false, message: 'Invalid username or password' });
-      }
-
-      const email = adminLoginEmail();
-      let user = await User.findOne({ email });
-      if (!user) {
-        user = new User({
-          name: 'Administrator',
-          email,
-          authProvider: 'local',
-        });
-      }
-      if (!user.password || !(await bcrypt.compare(configuredPassword, user.password))) {
-        user.password = await bcrypt.hash(configuredPassword, 12);
-      }
-      user.role = 'admin';
-      user.authProvider = user.googleId ? 'local+google' : 'local';
-      user.lastLogin = new Date();
-      await user.save();
-      return res.json({ success: true, user: publicUser(user), token: signToken(user) });
+      return await completeAdminLogin(identifier, password, res);
     }
 
     const email = normalizeEmail(identifier);
@@ -181,8 +215,8 @@ router.get(
   '/google/callback',
   (req, res, next) => {
     const expected = cookieValue(req, 'ng_oauth_state');
-    res.clearCookie('ng_oauth_state', { path: '/api/auth/google' });
     if (!safeEqual(expected, req.query.state)) {
+      res.clearCookie('ng_oauth_state', { path: '/api/auth/google' });
       const frontendUrl = String(process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
       return res.redirect(`${frontendUrl}/login?error=invalid_oauth_state`);
     }
@@ -194,8 +228,9 @@ router.get(
   },
   (req, res) => {
     const frontendUrl = String(process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+    res.clearCookie('ng_oauth_state', { path: '/api/auth/google' });
     const token = signToken(req.user);
-    res.redirect(`${frontendUrl}/auth/callback#token=${encodeURIComponent(token)}`);
+    return res.redirect(`${frontendUrl}/auth/callback#token=${encodeURIComponent(token)}`);
   }
 );
 
