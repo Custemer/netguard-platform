@@ -1,0 +1,101 @@
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import {
+  Shield, LayoutDashboard, AlertTriangle, Globe, Settings, BarChart3, FileText,
+  Users, LogOut, ChevronRight, Crosshair
+} from 'lucide-react';
+
+const navItems = [
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', end: true },
+  { to: '/threats', icon: AlertTriangle, label: 'Threats' },
+  { to: '/analytics', icon: BarChart3, label: 'Network Analytics' },
+  { to: '/reports', icon: FileText, label: 'Reports' },
+  { to: '/sites', icon: Globe, label: 'Protected Sites' },
+  { to: '/attack-sim', icon: Crosshair, label: 'Attack Simulator', accent: 'danger' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
+];
+
+export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const isAdmin = user?.role === 'admin';
+
+  return (
+    <>
+    {mobileOpen && <button className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={onClose} aria-label="Close navigation" />}
+    <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border flex flex-col z-50 transition-transform duration-200 md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      {/* Logo */}
+      <div className="p-6 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Shield className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="font-bold text-lg text-gray-100 tracking-tight">NetGuard</h1>
+            <p className="text-xs text-gray-500">Cloud Security Platform</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 py-4 px-3 space-y-1">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
+                isActive
+                  ? item.accent === 'danger'
+                    ? 'bg-danger/10 text-danger'
+                    : 'bg-primary/10 text-primary'
+                  : item.accent === 'danger'
+                    ? 'text-danger/80 hover:text-danger hover:bg-danger/5'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+              }`
+            }
+          >
+            <item.icon className="w-5 h-5" />
+            <span>{item.label}</span>
+            <ChevronRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-50 transition-opacity" />
+          </NavLink>
+        ))}
+
+        {isAdmin && (
+          <>
+            <div className="border-t border-border my-3"></div>
+            <div className="px-3 py-1 text-xs font-semibold text-gray-600 uppercase tracking-wider">Admin</div>
+            <NavLink
+              to="/admin"
+              onClick={onClose}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
+                  isActive
+                    ? 'bg-warning/10 text-warning'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                }`
+              }
+            >
+              <Users className="w-5 h-5" />
+              <span>Admin Panel</span>
+            </NavLink>
+          </>
+        )}
+      </nav>
+
+      {/* Footer */}
+      <div className="p-4 border-t border-border">
+        <button
+          onClick={logout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-danger hover:bg-danger/10 transition-all w-full"
+        >
+          <LogOut className="w-5 h-5" />
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </aside>
+    </>
+  );
+}

@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-dark text-gray-200 font-sans;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(79, 142, 247, 0.06), transparent),
+      radial-gradient(ellipse 60% 40% at 90% 110%, rgba(167, 139, 250, 0.04), transparent);
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary hover:bg-blue-600 text-white font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 shadow-lg shadow-primary/20;
+  }
+  .btn-danger {
+    @apply bg-danger hover:bg-red-600 text-white font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 shadow-lg shadow-danger/20;
+  }
+  .btn-ghost {
+    @apply bg-transparent border border-border hover:bg-white/5 text-gray-300 font-medium py-2.5 px-5 rounded-lg transition-all duration-200;
+  }
+  .card {
+    @apply bg-card border border-border rounded-xl p-6 shadow-sm;
+  }
+  .stat-card {
+    @apply bg-card border border-border rounded-xl p-5 flex flex-col gap-1 transition-all duration-200 hover:border-gray-600 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20;
+  }
+  .input-field {
+    @apply bg-surface border border-border rounded-lg px-4 py-2.5 text-gray-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all;
+  }
+  .badge {
+    @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+  .badge-danger {
+    @apply bg-danger/20 text-danger;
+  }
+  .badge-warning {
+    @apply bg-warning/20 text-warning;
+  }
+  .badge-safe {
+    @apply bg-safe/20 text-safe;
+  }
+  .badge-info {
+    @apply bg-primary/20 text-primary;
+  }
+}
+
+/* ---------- v3.6 SOC polish ---------- */
+
+/* Recharts tooltip shell */
+.ng-tooltip {
+  background: rgba(20, 23, 34, 0.96);
+  border: 1px solid #2a2d3e;
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-width: 150px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+
+/* Protection console terminal */
+.ng-terminal {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.ng-terminal .log-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.ng-terminal .log-pulse {
+  animation: logFlash 0.5s ease-out;
+}
+@keyframes logFlash {
+  0% { background: rgba(79, 142, 247, 0.12); border-radius: 6px; }
+  100% { background: transparent; }
+}
+
+/* Verdict banner */
+.verdict-banner {
+  margin-top: 1rem;
+  border-radius: 12px;
+  padding: 16px 20px;
+  animation: verdictIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  position: relative;
+  overflow: hidden;
+}
+.verdict-danger {
+  background: linear-gradient(120deg, rgba(255, 59, 92, 0.14), rgba(255, 59, 92, 0.03));
+  border: 1px solid rgba(255, 59, 92, 0.45);
+  box-shadow: 0 0 32px rgba(255, 59, 92, 0.12);
+}
+.verdict-danger::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0; width: 4px;
+  background: #ff3b5c;
+}
+.verdict-safe {
+  background: linear-gradient(120deg, rgba(0, 230, 118, 0.12), rgba(0, 230, 118, 0.03));
+  border: 1px solid rgba(0, 230, 118, 0.4);
+}
+.verdict-safe::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0; width: 4px;
+  background: #00e676;
+}
+.verdict-icon {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+@keyframes verdictIn {
+  0% { opacity: 0; transform: translateY(10px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Thin scrollbars for feed lists */
+.ng-scroll::-webkit-scrollbar,
+.ng-terminal::-webkit-scrollbar {
+  width: 5px;
+}
+.ng-scroll::-webkit-scrollbar-thumb {
+  background: #2a2d3e;
+  border-radius: 3px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0f1117;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2d3e;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3d4e;
+}

@@ -1,0 +1,14 @@
+{
+  "latestVersion": "3.5.0",
+  "downloadUrl": "/downloads/netguard-pro-extension.zip",
+  "publishedAt": "2026-07-22",
+  "minimumChromeVersion": "120",
+  "sha256": "531a94528d1fc51596fe803ea715dddb9b140d86d33ceb056a5073f27b55cef4",
+  "changelog": [
+    "Added a full-page blurred warning for high-confidence unsafe websites",
+    "Added a visible 10-second countdown with automatic return to safety",
+    "Added Continue Anyway and Go Back controls with decision logging",
+    "Added one shared URL risk engine for automatic and manual scans",
+    "Added an independent rate-limited administrator recovery login for demonstrations"
+  ]
+}
