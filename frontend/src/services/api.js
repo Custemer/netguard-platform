@@ -33,14 +33,31 @@ export function apiErrorMessage(error, fallback = 'Request failed') {
 
 export function notifyApiError(error, fallback) {
   const message = apiErrorMessage(error, fallback);
-  toast.error(message, {
-    // Reuse one toast so repeated clicks or parallel page loads cannot stack
-    // identical errors down the screen.
-    id: error.response?.status === 429 ? 'netguard-rate-limit' : 'netguard-api-error',
-    duration: error.response?.status === 429 ? 6000 : 4000,
+  const key = error.response?.status === 429 ? 'netguard-rate-limit' : 'netguard-api-error';
+  // Quiet period: repeated failures re-use one toast, and the same notice is not
+  // re-shown within 30 seconds so it cannot keep popping over the dashboard.
+  const last = notifyApiError.lastShown.get(key) || 0;
+  if (Date.now() - last < 30000) return message;
+  notifyApiError.lastShown.set(key, Date.now());
+  const h = React.createElement;
+  toast.error((t) => h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 12 } },
+    h('span', { style: { maxWidth: 340 } }, message),
+    h('button', {
+      type: 'button',
+      'aria-label': 'Dismiss notification',
+      onClick: () => toast.dismiss(t.id),
+      style: {
+        background: 'transparent', border: 'none', cursor: 'pointer',
+        color: '#9aa4b8', fontSize: 14, fontWeight: 700, padding: '2px 6px', lineHeight: 1,
+      },
+    }, '✕'),
+  ), {
+    id: key,
+    duration: 8000,
   });
   return message;
 }
+notifyApiError.lastShown = new Map();
 
 // Auto-attach token
 api.interceptors.request.use((config) => {

@@ -13,7 +13,6 @@ const Reports = lazy(() => import('./pages/Reports'));
 const ProtectedSites = lazy(() => import('./pages/ProtectedSites'));
 const Settings = lazy(() => import('./pages/Settings'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
-const AttackSimulator = lazy(() => import('./pages/AttackSimulator'));
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -58,7 +57,6 @@ export default function App() {
         <Route path="analytics" element={<Analytics />} />
         <Route path="reports" element={<Reports />} />
         <Route path="sites" element={<ProtectedSites />} />
-        <Route path="attack-sim" element={<AttackSimulator />} />
         <Route path="settings" element={<Settings />} />
         <Route path="admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
       </Route>

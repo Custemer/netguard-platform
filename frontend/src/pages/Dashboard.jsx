@@ -340,7 +340,7 @@ export default function Dashboard() {
               <p className="text-sm text-gray-500">No threat activity recorded in the last 90 days.</p>
               <p className="text-xs text-gray-600 max-w-sm">
                 Pair the v3.5 extension with this account and browse normally — detections appear here in real time.
-                The <a href="/attack-sim" className="text-primary hover:underline">Attack Simulator</a> can also generate a live blocking demonstration.
+                Register a website under Protected Sites to see live application-layer protection evidence.
               </p>
             </div>
           )}
