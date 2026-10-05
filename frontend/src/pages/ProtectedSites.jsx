@@ -90,6 +90,12 @@ export default function ProtectedSites() {
 
   useEffect(() => { loadSites(); }, []);
 
+  /* Auto-refresh every 10s so counters climb live while an attack runs. */
+  useEffect(() => {
+    const timer = setInterval(() => { loadSites(); }, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
   const addSite = async (event) => {
     event.preventDefault();
     setAdding(true);
