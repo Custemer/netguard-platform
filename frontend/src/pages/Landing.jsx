@@ -32,7 +32,7 @@ export default function Landing() {
               <Shield className="w-5 h-5 text-primary" />
             </div>
             <span className="font-bold text-lg text-gray-100">NetGuard</span>
-            <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-mono">v3.5</span>
+            <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-mono">v3.6</span>
           </div>
           <div className="flex items-center gap-4">
             <Link to="/login" className="btn-primary text-sm">
@@ -163,7 +163,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-border text-center">
         <p className="text-sm text-gray-600">
-          🛡️ NetGuard Pro v3.5 – Final Year Project | Network & Cloud Security | 2026
+          🛡️ NetGuard Pro v3.6 – Final Year Project | Network & Cloud Security | 2026
         </p>
       </footer>
     </div>

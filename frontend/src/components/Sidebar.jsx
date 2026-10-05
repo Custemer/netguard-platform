@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Shield, LayoutDashboard, AlertTriangle, Globe, Settings, BarChart3, FileText,
-  Users, LogOut, ChevronRight
+  Users, LogOut, ChevronRight, Crosshair
 } from 'lucide-react';
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { to: '/analytics', icon: BarChart3, label: 'Network Analytics' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/sites', icon: Globe, label: 'Protected Sites' },
+  { to: '/attack-sim', icon: Crosshair, label: 'Attack Simulator', accent: 'danger' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -47,8 +48,12 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
                 isActive
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                  ? item.accent === 'danger'
+                    ? 'bg-danger/10 text-danger'
+                    : 'bg-primary/10 text-primary'
+                  : item.accent === 'danger'
+                    ? 'text-danger/80 hover:text-danger hover:bg-danger/5'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
               }`
             }
           >

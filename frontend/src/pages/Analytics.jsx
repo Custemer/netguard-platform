@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Activity, AlertTriangle, Bot, Download, Eye, Globe2, Lock, RefreshCw, ShieldCheck } from 'lucide-react';
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  Activity, AlertTriangle, Bot, Download, Eye, Globe2, Lock, RefreshCw, ShieldCheck, TrendingUp,
+} from 'lucide-react';
+import {
+  Area, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  RadialBarChart, RadialBar,
+} from 'recharts';
 import { jsPDF } from 'jspdf';
 import { autoTable } from 'jspdf-autotable';
 import api, { notifyApiError } from '../services/api';
@@ -21,10 +26,26 @@ function mergeDaily(activity = [], threats = []) {
 }
 
 function scoreColor(score) {
-  if (score === null) return 'text-gray-400';
+  if (score === null || score === undefined) return 'text-gray-400';
   if (score >= 80) return 'text-safe';
   if (score >= 55) return 'text-warning';
   return 'text-danger';
+}
+
+function ChartTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="ng-tooltip">
+      <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1.5">{label?.slice(0, 10)}</div>
+      {payload.map((entry) => (
+        <div key={entry.dataKey} className="flex items-center gap-2 text-xs">
+          <span className="w-2 h-2 rounded-full" style={{ background: entry.color || entry.fill }} />
+          <span className="text-gray-400">{entry.name}</span>
+          <span className="ml-auto font-bold text-gray-100 tabular-nums">{entry.value?.toLocaleString()}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function Analytics() {
@@ -47,6 +68,11 @@ export default function Analytics() {
 
   useEffect(() => { load(); }, [days]);
   const daily = useMemo(() => mergeDaily(data?.dailyActivity, data?.dailyThreats), [data]);
+  const httpsRatio = useMemo(() => {
+    const t = data?.totals;
+    if (!t || !t.visits) return null;
+    return Math.round((t.secureVisits / t.visits) * 100);
+  }, [data]);
 
   const askAssistant = (issue) => {
     window.dispatchEvent(new CustomEvent('netguard:assistant', { detail: { issue } }));
@@ -166,30 +192,69 @@ export default function Analytics() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
-        <div className="stat-card"><ShieldCheck className="w-5 h-5 text-primary" /><span className="text-xs text-gray-500">Security score</span><strong className={`text-3xl ${scoreColor(data.securityScore)}`}>{data.securityScore ?? 'N/A'}</strong></div>
-        <div className="stat-card"><Activity className="w-5 h-5 text-secondary" /><span className="text-xs text-gray-500">Page visits</span><strong className="text-3xl">{totals.visits}</strong></div>
-        <div className="stat-card"><Globe2 className="w-5 h-5 text-primary" /><span className="text-xs text-gray-500">Unique domains</span><strong className="text-3xl">{totals.uniqueDomains}</strong></div>
-        <div className="stat-card"><AlertTriangle className="w-5 h-5 text-danger" /><span className="text-xs text-gray-500">Threats</span><strong className="text-3xl">{totals.threats}</strong></div>
-        <div className="stat-card"><Eye className="w-5 h-5 text-warning" /><span className="text-xs text-gray-500">Trackers</span><strong className="text-3xl">{totals.trackers}</strong></div>
+      {/* Score + KPI strip */}
+      <div className="grid grid-cols-2 xl:grid-cols-6 gap-4">
+        <div className="stat-card relative overflow-hidden">
+          <span className="text-xs text-gray-500 uppercase tracking-wider">Security score</span>
+          <div className="flex items-center gap-3 mt-2">
+            <div className="relative w-16 h-16 shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadialBarChart innerRadius="66%" outerRadius="100%" startAngle={210} endAngle={-30}
+                  data={[{ value: data.securityScore ?? 0, fill: data.securityScore >= 80 ? '#00e676' : data.securityScore >= 55 ? '#ffa726' : '#ff3b5c' }]}>
+                  <RadialBar background={{ fill: '#232637' }} dataKey="value" cornerRadius={8} />
+                </RadialBarChart>
+              </ResponsiveContainer>
+              <span className={`absolute inset-0 flex items-center justify-center text-sm font-extrabold ${scoreColor(data.securityScore)}`}>
+                {data.securityScore ?? '–'}
+              </span>
+            </div>
+            <div className="text-[11px] text-gray-500 leading-snug">
+              {data.securityScore === null || data.securityScore === undefined ? 'Not enough browsing data yet' : 'Based on HTTPS usage, threats and trackers'}
+            </div>
+          </div>
+        </div>
+        <div className="stat-card"><div className="flex items-center justify-between"><span className="text-xs text-gray-500">Page visits</span><Activity className="w-4 h-4 text-secondary" /></div><strong className="text-3xl mt-1 block tabular-nums">{totals.visits.toLocaleString()}</strong></div>
+        <div className="stat-card"><div className="flex items-center justify-between"><span className="text-xs text-gray-500">Unique domains</span><Globe2 className="w-4 h-4 text-primary" /></div><strong className="text-3xl mt-1 block tabular-nums">{totals.uniqueDomains.toLocaleString()}</strong></div>
+        <div className="stat-card"><div className="flex items-center justify-between"><span className="text-xs text-gray-500">HTTPS ratio</span><ShieldCheck className={`w-4 h-4 ${httpsRatio === null ? 'text-gray-600' : httpsRatio >= 90 ? 'text-safe' : 'text-warning'}`} /></div><strong className={`text-3xl mt-1 block tabular-nums ${httpsRatio === null ? 'text-gray-600' : httpsRatio >= 90 ? 'text-safe' : 'text-warning'}`}>{httpsRatio === null ? '–' : `${httpsRatio}%`}</strong></div>
+        <div className="stat-card"><div className="flex items-center justify-between"><span className="text-xs text-gray-500">Threats</span><AlertTriangle className="w-4 h-4 text-danger" /></div><strong className="text-3xl mt-1 block tabular-nums text-danger">{totals.threats.toLocaleString()}</strong></div>
+        <div className="stat-card"><div className="flex items-center justify-between"><span className="text-xs text-gray-500">Trackers</span><Eye className="w-4 h-4 text-warning" /></div><strong className="text-3xl mt-1 block tabular-nums">{totals.trackers.toLocaleString()}</strong></div>
       </div>
 
+      {/* Main composed chart */}
       <div className="card">
-        <h2 className="font-semibold text-gray-200 mb-4">Visits and findings</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-gray-200 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Visits and findings</h2>
+          <span className="text-[10px] font-mono text-gray-600">{daily.length} day buckets</span>
+        </div>
         {daily.length ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={daily}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2a2d3e" />
-              <XAxis dataKey="date" stroke="#5a7a99" fontSize={11} tickFormatter={(value) => value.slice(5)} />
-              <YAxis stroke="#5a7a99" fontSize={11} />
-              <Tooltip contentStyle={{ background: '#1e2130', border: '1px solid #2a2d3e', borderRadius: 8 }} />
-              <Legend />
-              <Line type="monotone" dataKey="secure" name="HTTPS visits" stroke="#00e676" strokeWidth={2} />
-              <Line type="monotone" dataKey="insecure" name="HTTP visits" stroke="#ffa726" strokeWidth={2} />
-              <Line type="monotone" dataKey="threats" name="Threats" stroke="#ff3b5c" strokeWidth={2} />
-            </LineChart>
+          <ResponsiveContainer width="100%" height={320}>
+            <ComposedChart data={daily}>
+              <defs>
+                <linearGradient id="aSecure" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#4f8ef7" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="#4f8ef7" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#232637" vertical={false} />
+              <XAxis dataKey="date" stroke="#5a7a99" fontSize={11} tickLine={false} tickFormatter={(value) => value.slice(5)} />
+              <YAxis stroke="#5a7a99" fontSize={11} tickLine={false} axisLine={false} width={32} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(79,142,247,0.05)' }} />
+              <Area type="monotone" dataKey="secure" name="HTTPS visits" stroke="#4f8ef7" strokeWidth={2} fill="url(#aSecure)" />
+              <Line type="monotone" dataKey="insecure" name="HTTP visits" stroke="#ffa726" strokeWidth={2} dot={false} />
+              <Bar dataKey="threats" name="Threats" fill="#ff3b5c" radius={[4, 4, 0, 0]} barSize={10} />
+              <Line type="monotone" dataKey="blocked" name="Blocked" stroke="#00e676" strokeWidth={2} dot={false} />
+            </ComposedChart>
           </ResponsiveContainer>
-        ) : <div className="h-48 flex items-center justify-center text-sm text-gray-600">Install and pair v3.5 of the extension to begin collecting domain-level analytics.</div>}
+        ) : (
+          <div className="h-[320px] flex flex-col items-center justify-center gap-3 text-center px-6">
+            <Activity className="w-8 h-8 text-gray-600" />
+            <p className="text-sm text-gray-500">No browsing activity in this window.</p>
+            <p className="text-xs text-gray-600 max-w-md">
+              Install and pair v3.5 of the extension (Install page → download ZIP → chrome://extensions → Load unpacked),
+              then browse normally — domain-level analytics build automatically.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -197,12 +262,24 @@ export default function Analytics() {
           <h2 className="font-semibold text-gray-200 mb-4">Most visited domains</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs uppercase text-gray-600 border-b border-border"><th className="py-3">Domain</th><th>Visits</th><th>HTTPS</th><th>HTTP</th><th>Threats</th></tr></thead>
-              <tbody>{data.domains.map((domain) => (
-                <tr key={domain.domain} className="border-b border-border/60">
-                  <td className="py-3 text-gray-300">{domain.domain}</td><td>{domain.visits}</td><td className="text-safe">{domain.secureVisits}</td><td className="text-warning">{domain.insecureVisits}</td><td className={domain.threats ? 'text-danger' : 'text-gray-500'}>{domain.threats}</td>
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wider text-gray-600 border-b border-border">
+                  <th className="py-3 pr-2">Domain</th><th>Visits</th><th>HTTPS</th><th>HTTP</th><th>Threats</th>
                 </tr>
-              ))}</tbody>
+              </thead>
+              <tbody>
+                {data.domains.length ? data.domains.map((domain) => (
+                  <tr key={domain.domain} className="border-b border-border/60 hover:bg-surface/60 transition-colors">
+                    <td className="py-3 pr-2 text-gray-300 font-mono text-xs">{domain.domain}</td>
+                    <td className="tabular-nums">{domain.visits.toLocaleString()}</td>
+                    <td className="text-safe tabular-nums">{domain.secureVisits.toLocaleString()}</td>
+                    <td className="text-warning tabular-nums">{domain.insecureVisits.toLocaleString()}</td>
+                    <td className={domain.threats ? 'text-danger font-semibold tabular-nums' : 'text-gray-500 tabular-nums'}>{domain.threats}</td>
+                  </tr>
+                )) : (
+                  <tr><td colSpan={5} className="py-10 text-center text-gray-600 text-xs">No domain data in this period.</td></tr>
+                )}
+              </tbody>
             </table>
           </div>
         </div>
