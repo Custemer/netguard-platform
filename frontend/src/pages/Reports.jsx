@@ -94,6 +94,7 @@ export default function Reports() {
 
   const downloadPdf = () => {
     if (!data) return;
+    try {
     const website = reportType === 'website';
     const generated = new Date(data.generatedAt);
     const title = website ? 'Protected Website Security Report' : 'Web Browsing Security Report';
@@ -185,6 +186,10 @@ export default function Reports() {
     const slug = website ? `website-${data.site.siteName || 'site'}` : 'web-browsing';
     doc.save(`netguard-${slug.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${generated.toISOString().slice(0, 10)}.pdf`);
     toast.success('Full PDF report downloaded');
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      toast.error('Could not generate the PDF. If you are inside an embedded preview, open the site in a normal browser tab and try again.');
+    }
   };
 
   const statCards = reportType === 'browser' ? [

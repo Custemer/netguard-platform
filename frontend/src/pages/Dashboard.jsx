@@ -4,8 +4,8 @@ import {
   RefreshCw, Activity, Lock, Zap, Radio, Cpu, ArrowUpRight, ShieldCheck, Bot, Fingerprint,
 } from 'lucide-react';
 import {
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, RadialBarChart, RadialBar,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  ReferenceLine, RadialBarChart, RadialBar, AreaChart, Area,
 } from 'recharts';
 import api, { apiUrl } from '../services/api';
 import toast from 'react-hot-toast';
@@ -31,8 +31,7 @@ function relativeTime(value) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-/* ---- polished shared tooltip ---- */
-function ChartTooltip({ active, payload, label, formatter }) {
+function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="ng-tooltip">
@@ -41,16 +40,13 @@ function ChartTooltip({ active, payload, label, formatter }) {
         <div key={entry.dataKey} className="flex items-center gap-2 text-xs">
           <span className="w-2 h-2 rounded-full" style={{ background: entry.color || entry.fill }} />
           <span className="text-gray-400">{entry.name}</span>
-          <span className="ml-auto font-bold text-gray-100 tabular-nums">
-            {formatter ? formatter(entry.value) : entry.value?.toLocaleString()}
-          </span>
+          <span className="ml-auto font-bold text-gray-100 tabular-nums">{entry.value?.toLocaleString()}</span>
         </div>
       ))}
     </div>
   );
 }
 
-/* ---- KPI card with sparkline ---- */
 function KpiCard({ icon: Icon, label, value, sub, tone, children }) {
   const tones = {
     danger: 'text-danger bg-danger/10 border-danger/20',
@@ -97,10 +93,26 @@ function Sparkline({ data, color }) {
   );
 }
 
+/* Build a continuous, zero-filled daily timeline for the chosen window so the
+   chart always shows an honest timeline (quiet days read as zero, not gaps). */
+function buildTimeline(rows, days) {
+  const byDate = new Map(rows.map((r) => [r.date, r]));
+  const out = [];
+  const today = new Date();
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const row = byDate.get(key);
+    out.push({ date: key, threats: row?.threats || 0, blocked: row?.blocked || 0 });
+  }
+  return out;
+}
+
 export default function Dashboard() {
   const [data, setData] = useState(null);
-  const [trend, setTrend] = useState([]);
-  const [trendWindow, setTrendWindow] = useState(null);
+  const [threatRows, setThreatRows] = useState(null); // all daily rows (up to 90d)
+  const [windowMode, setWindowMode] = useState('auto'); // 'auto' | 7 | 30 | 90
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [health, setHealth] = useState(null);
@@ -133,25 +145,20 @@ export default function Dashboard() {
     }
   };
 
-  /* Trend with honest window fallback: 7d → 30d → 90d (uses the same
-     analytics API as the Analytics page, so nothing is fabricated). */
+  /* One 90-day analytics pull powers every window (7/30/90 are subsets). */
   const loadTrend = async (overview) => {
-    const fromOverview = (overview?.trendData || []).map((row) => ({
-      date: row._id, threats: row.count || 0, blocked: row.blocked || 0,
-    }));
-    if (fromOverview.length) {
-      setTrend(fromOverview); setTrendWindow(7); return;
+    try {
+      const res = await api.get('/api/dashboard/analytics', { params: { days: 90 } });
+      const rows = (res.data.data?.dailyThreats || []).map((row) => ({
+        date: row._id, threats: row.threats || 0, blocked: row.blocked || 0,
+      }));
+      setThreatRows(rows);
+    } catch {
+      const fallback = (overview?.trendData || []).map((row) => ({
+        date: row._id, threats: row.count || 0, blocked: row.blocked || 0,
+      }));
+      setThreatRows(fallback);
     }
-    for (const days of [7, 30, 90]) {
-      try {
-        const res = await api.get('/api/dashboard/analytics', { params: { days } });
-        const rows = (res.data.data?.dailyThreats || []).map((row) => ({
-          date: row._id, threats: row.threats || 0, blocked: row.blocked || 0,
-        }));
-        if (rows.length) { setTrend(rows); setTrendWindow(days); return; }
-      } catch { /* try next window */ }
-    }
-    setTrend([]); setTrendWindow(7);
   };
 
   const copyProtectionCode = () => {
@@ -167,24 +174,48 @@ export default function Dashboard() {
     () => (data?.threatsBySeverity || []).reduce((sum, row) => sum + row.count, 0), [data],
   );
 
-  /* threat level gauge — highest severity observed in recent threats */
+  /* auto window: smallest window that contains the full evidence span,
+     so long quiet gaps don't hide older spikes */
+  const activeWindow = useMemo(() => {
+    if (windowMode !== 'auto') return windowMode;
+    if (!threatRows?.length) return 7;
+    const dates = threatRows.map((r) => r.date).sort();
+    const spanDays = Math.max(1, Math.round(
+      (new Date(dates[dates.length - 1]) - new Date(dates[0])) / 86400000,
+    ) + 1);
+    if (spanDays <= 7) return 7;
+    if (spanDays <= 30) return 30;
+    return 90;
+  }, [windowMode, threatRows]);
+
+  const trend = useMemo(
+    () => (threatRows ? buildTimeline(threatRows, activeWindow) : []),
+    [threatRows, activeWindow],
+  );
+
+  const trendStats = useMemo(() => {
+    const nonZero = trend.filter((d) => d.threats > 0);
+    const total = trend.reduce((sum, d) => sum + d.threats, 0);
+    const avg = nonZero.length ? Math.round(total / nonZero.length) : 0;
+    return { activeDays: nonZero.length, total, avg };
+  }, [trend]);
+
   const threatLevel = useMemo(() => {
     const weights = { critical: 88, high: 72, medium: 46, low: 24 };
-    let level = 8; let label = 'SECURE'; let color = '#00e676';
+    let level = 8;
     (data?.recentThreats || []).forEach((t) => {
       const w = weights[t.severity] ?? 0;
       if (w > level) level = w;
     });
     if ((data?.threatsBySeverity || []).some((s) => s._id === 'critical')) { level = Math.max(level, 88); }
+    let label = 'SECURE'; let color = '#00e676';
     if (level >= 80) { label = 'CRITICAL'; color = '#ff3b5c'; }
     else if (level >= 65) { label = 'ELEVATED'; color = '#ff6432'; }
     else if (level >= 40) { label = 'GUARDED'; color = '#ffa726'; }
     return { level, label, color };
   }, [data]);
 
-  const sparkThreats = useMemo(
-    () => trend.map((row) => ({ v: row.threats })), [trend],
-  );
+  const sparkThreats = useMemo(() => trend.map((row) => ({ v: row.threats })), [trend]);
 
   const settings = data?.settings || {};
   const layerChips = [
@@ -297,45 +328,53 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Threat trend */}
         <div className="card lg:col-span-2 relative overflow-hidden">
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
             <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-primary" /> Threat Activity
             </h3>
-            {trendWindow && (
-              <span className="text-[10px] font-mono text-primary bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5">
-                {trendWindow === 7 ? 'LAST 7 DAYS' : trendWindow === 30 ? 'LAST 30 DAYS' : 'LAST 90 DAYS'}
-              </span>
-            )}
+            <div className="flex items-center gap-1 bg-surface border border-border rounded-lg p-0.5">
+              {[['auto', 'AUTO'], [7, '7D'], [30, '30D'], [90, '90D']].map(([value, label]) => (
+                <button key={String(value)} onClick={() => setWindowMode(value)}
+                  className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-md transition-all ${
+                    windowMode === value ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-300'
+                  }`}>
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
           <p className="text-[11px] text-gray-600 mb-3">
-            {trendWindow === 90 ? 'No activity in shorter windows — showing the widest 90-day evidence window.' : 'Detections recorded by the extension risk engine.'}
+            {trendStats.activeDays > 0
+              ? `${trendStats.total.toLocaleString()} detections · ${trendStats.activeDays} active day${trendStats.activeDays > 1 ? 's' : ''} · avg ${trendStats.avg.toLocaleString()}/active day`
+              : 'No activity recorded in this window.'}
           </p>
-          {trend.length ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={trend}>
+          {trend.length && trendStats.total > 0 ? (
+            <ResponsiveContainer width="100%" height={270}>
+              <ComposedChart data={trend}>
                 <defs>
-                  <linearGradient id="gThreats" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ff3b5c" stopOpacity={0.45} />
-                    <stop offset="100%" stopColor="#ff3b5c" stopOpacity={0.02} />
-                  </linearGradient>
-                  <linearGradient id="gBlocked" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#00e676" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#00e676" stopOpacity={0.02} />
+                  <linearGradient id="gBar" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ff3b5c" stopOpacity={0.95} />
+                    <stop offset="100%" stopColor="#ff3b5c" stopOpacity={0.35} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#232637" vertical={false} />
                 <XAxis dataKey="date" stroke="#5a7a99" fontSize={11} tickLine={false}
-                  tickFormatter={(v) => v?.slice(5)} axisLine={{ stroke: '#2a2d3e' }} />
-                <YAxis stroke="#5a7a99" fontSize={11} tickLine={false} axisLine={false} width={32} />
-                <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="threats" name="Threats" stroke="#ff3b5c" strokeWidth={2.5}
-                  fill="url(#gThreats)" activeDot={{ r: 5, strokeWidth: 2, stroke: '#0f1117' }} />
-                <Area type="monotone" dataKey="blocked" name="Blocked" stroke="#00e676" strokeWidth={2}
-                  fill="url(#gBlocked)" activeDot={{ r: 4, strokeWidth: 2, stroke: '#0f1117' }} />
-              </AreaChart>
+                  tickFormatter={(v) => v?.slice(5)} axisLine={{ stroke: '#2a2d3e' }}
+                  minTickGap={18} />
+                <YAxis yAxisId="left" stroke="#5a7a99" fontSize={11} tickLine={false} axisLine={false} width={36} />
+                <YAxis yAxisId="right" orientation="right" stroke="#00e676" fontSize={10} tickLine={false} axisLine={false} width={30} />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(79,142,247,0.06)' }} />
+                {trendStats.avg > 0 && (
+                  <ReferenceLine yAxisId="left" y={trendStats.avg} stroke="#4f8ef7" strokeDasharray="6 4"
+                    label={{ value: `avg ${trendStats.avg}`, position: 'insideTopRight', fill: '#4f8ef7', fontSize: 10 }} />
+                )}
+                <Bar yAxisId="left" dataKey="threats" name="Detections" fill="url(#gBar)" radius={[5, 5, 0, 0]} barSize={14} />
+                <Line yAxisId="right" type="monotone" dataKey="blocked" name="Blocked" stroke="#00e676"
+                  strokeWidth={2.5} dot={{ r: 3, fill: '#00e676', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+              </ComposedChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[260px] rounded-xl border border-dashed border-border flex flex-col items-center justify-center gap-3 text-center px-6">
+            <div className="h-[270px] rounded-xl border border-dashed border-border flex flex-col items-center justify-center gap-3 text-center px-6">
               <Activity className="w-8 h-8 text-gray-600" />
               <p className="text-sm text-gray-500">No threat activity recorded in the last 90 days.</p>
               <p className="text-xs text-gray-600 max-w-sm">
@@ -353,9 +392,7 @@ export default function Dashboard() {
           </h3>
           <div className="relative">
             <ResponsiveContainer width="100%" height={170}>
-              <RadialBarChart innerRadius="72%" outerRadius="100%" data={[{ name: 'level', value: threatLevel.level, fill: threatLevel.color }]} startAngle={210} endAngle={-30}>
-                <RadialBar background={{ fill: '#232637' }} dataKey="value" cornerRadius={12} />
-              </RadialBarChart>
+              <RadialGauge level={threatLevel.level} color={threatLevel.color} />
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <span className="text-3xl font-extrabold tabular-nums" style={{ color: threatLevel.color }}>
@@ -400,22 +437,23 @@ export default function Dashboard() {
         <div className="card">
           <h3 className="text-sm font-semibold text-gray-200 mb-4">Threat Categories</h3>
           {data.threatsByCategory?.length ? (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={data.threatsByCategory.slice(0, 7)} layout="vertical" margin={{ left: 4, right: 12 }}>
-                <defs>
-                  <linearGradient id="gBar" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#4f8ef7" stopOpacity={0.9} />
-                    <stop offset="100%" stopColor="#a78bfa" stopOpacity={0.9} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#232637" horizontal={false} />
-                <XAxis type="number" stroke="#5a7a99" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="_id" stroke="#5a7a99" fontSize={10} width={96}
-                  tickFormatter={(v) => CATEGORY_LABELS[v] || v} tickLine={false} axisLine={false} />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(79,142,247,0.06)' }} />
-                <Bar dataKey="count" name="Detections" fill="url(#gBar)" radius={[0, 6, 6, 0]} barSize={16} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="space-y-3">
+              {data.threatsByCategory.slice(0, 8).map((row) => {
+                const max = Math.max(...data.threatsByCategory.map((c) => c.count));
+                return (
+                  <div key={row._id}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-gray-400">{CATEGORY_LABELS[row._id] || row._id}</span>
+                      <span className="tabular-nums text-gray-300">{row.count.toLocaleString()}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-surface overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${(row.count / max) * 100}%`, background: 'linear-gradient(90deg, #4f8ef7, #a78bfa)' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <div className="h-[260px] flex items-center justify-center text-sm text-gray-600">No category data yet.</div>
           )}
@@ -436,12 +474,12 @@ export default function Dashboard() {
             </a>
           </div>
           {data.recentThreats?.length ? (
-            <div className="space-y-2 max-h-[290px] overflow-y-auto ng-scroll pr-1">
+            <div className="space-y-2 max-h-[320px] overflow-y-auto ng-scroll pr-1">
               {data.recentThreats.slice(0, 10).map((threat, i) => (
                 <div key={threat._id || i} className="group flex items-center gap-3 p-3 rounded-xl bg-surface/70 hover:bg-surface border border-transparent hover:border-border transition-all">
                   <span className="w-1 h-9 rounded-full flex-shrink-0" style={{ background: SEVERITY_COLORS[threat.severity] || '#4f8ef7' }} />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-gray-200">
                         {CATEGORY_LABELS[threat.category] || threat.category}
                       </span>
@@ -492,7 +530,16 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-
     </div>
+  );
+}
+
+/* Lightweight radial gauge for the threat level. */
+function RadialGauge({ level, color }) {
+  return (
+    <RadialBarChart innerRadius="72%" outerRadius="100%" startAngle={210} endAngle={-30}
+      data={[{ name: 'level', value: level, fill: color }]}>
+      <RadialBar background={{ fill: '#232637' }} dataKey="value" cornerRadius={12} />
+    </RadialBarChart>
   );
 }
