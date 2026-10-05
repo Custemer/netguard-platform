@@ -6,6 +6,22 @@ import Login from './pages/Login';
 import Install from './pages/Install';
 import Layout from './components/Layout';
 
+/* Lazy pages load as separate chunks. After a redeploy, a browser holding an
+   old cached app may request a chunk that no longer exists and would show a
+   blank page. Retry once, and if it still fails, reload once to pick up the
+   new build (guarded so it cannot loop). */
+function lazyRetry(dynamicImport) {
+  return lazy(() => dynamicImport().catch((error) => {
+    try {
+      if (!sessionStorage.getItem('ng-chunk-reloaded')) {
+        sessionStorage.setItem('ng-chunk-reloaded', '1');
+        window.location.reload();
+      }
+    } catch (_) { /* storage unavailable — just surface the error */ }
+    throw error;
+  }));
+}
+
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Threats = lazy(() => import('./pages/Threats'));
 const Analytics = lazy(() => import('./pages/Analytics'));
