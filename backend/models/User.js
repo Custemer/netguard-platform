@@ -66,6 +66,8 @@ const UserSchema = new mongoose.Schema({
     sessionMonitoring: { type: Boolean, default: true },
     notifications: { type: Boolean, default: true },
     autoBlock: { type: Boolean, default: true },
+    webhookUrl: { type: String, default: '' },
+    webhookAlerts: { type: Boolean, default: false },
   },
   lastLogin: {
     type: Date,

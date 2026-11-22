@@ -286,7 +286,7 @@ router.post('/sites/:siteId/network-scan', authenticate, async (req, res) => {
 router.put('/settings', authenticate, async (req, res) => {
   try {
     const { zeroTrustMode, behavioralDetection, threatIntelEnabled,
-            sessionMonitoring, notifications, autoBlock } = req.body;
+            sessionMonitoring, notifications, autoBlock, webhookUrl, webhookAlerts } = req.body;
 
     req.user.settings = {
       zeroTrustMode: zeroTrustMode ?? req.user.settings.zeroTrustMode,
@@ -295,12 +295,90 @@ router.put('/settings', authenticate, async (req, res) => {
       sessionMonitoring: sessionMonitoring ?? req.user.settings.sessionMonitoring,
       notifications: notifications ?? req.user.settings.notifications,
       autoBlock: autoBlock ?? req.user.settings.autoBlock,
+      webhookUrl: webhookUrl !== undefined ? String(webhookUrl).trim() : (req.user.settings.webhookUrl || ''),
+      webhookAlerts: webhookAlerts !== undefined ? Boolean(webhookAlerts) : (req.user.settings.webhookAlerts || false),
     };
     await req.user.save();
 
     res.json({ success: true, settings: req.user.settings });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Send a test incident alert to the configured SIEM / Discord / Slack webhook
+router.post('/test-webhook', authenticate, async (req, res) => {
+  try {
+    const webhookUrl = String(req.body.webhookUrl || req.user.settings?.webhookUrl || '').trim();
+    if (!webhookUrl) {
+      return res.status(400).json({ success: false, message: 'Please configure a Webhook URL first.' });
+    }
+    if (!/^https?:\/\//i.test(webhookUrl)) {
+      return res.status(400).json({ success: false, message: 'Webhook URL must be a valid HTTP or HTTPS endpoint.' });
+    }
+
+    const testPayload = {
+      source: 'NetGuard Pro Cloud Security (SOC)',
+      eventType: 'SECURITY_INCIDENT_SIMULATION',
+      severity: 'CRITICAL',
+      timestamp: new Date().toISOString(),
+      user: req.user.email,
+      details: {
+        threatCategory: 'Phishing / Brand Spoofing Attempt',
+        layer: 'Heuristic & IoC Engine',
+        actionTaken: 'BLOCKED & ISOLATED',
+        simulatedDomain: 'arnazon-security-login.xyz',
+        decision: 'Page obscured, 10s countdown triggered, user navigated to safety',
+      },
+      message: '🚨 [NetGuard Pro Alert] High-confidence phishing attack blocked at browser edge.',
+    };
+
+    const isDiscord = webhookUrl.includes('discord.com/api/webhooks');
+    const isSlack = webhookUrl.includes('hooks.slack.com');
+
+    let bodyData;
+    if (isDiscord) {
+      bodyData = JSON.stringify({
+        content: '🚨 **NetGuard Pro SOC Security Alert**',
+        embeds: [{
+          title: 'Critical Threat Intercepted',
+          description: 'A brand spoofing phishing domain was blocked at the browser layer.',
+          color: 0xff3b5c,
+          fields: [
+            { name: 'Target User', value: req.user.email, inline: true },
+            { name: 'Detection Layer', value: 'Heuristic & IoC Engine', inline: true },
+            { name: 'Simulated Domain', value: 'arnazon-security-login.xyz', inline: false },
+            { name: 'Action Taken', value: 'BLOCKED & ISOLATED', inline: true },
+          ],
+          timestamp: new Date().toISOString(),
+          footer: { text: 'NetGuard Pro SIEM Integration' },
+        }],
+      });
+    } else if (isSlack) {
+      bodyData = JSON.stringify({
+        text: `🚨 *[NetGuard Pro Alert]* Critical threat intercepted for ${req.user.email} (Domain: arnazon-security-login.xyz) - Action: BLOCKED.`,
+      });
+    } else {
+      bodyData = JSON.stringify(testPayload);
+    }
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: bodyData,
+    });
+
+    if (!response.ok) {
+      return res.status(502).json({
+        success: false,
+        message: `Webhook endpoint returned HTTP ${response.status}`,
+      });
+    }
+
+    res.json({ success: true, message: 'Test incident alert sent successfully!' });
+  } catch (error) {
+    console.error('Webhook dispatch error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed to dispatch webhook' });
   }
 });
 

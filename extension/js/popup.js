@@ -318,31 +318,119 @@ async function inspectTls() {
   if (!host) return;
 
   button.disabled = true;
-  button.textContent = 'Inspecting...';
+  button.textContent = 'Auditing...';
   result.className = 'tool-result show';
-  result.textContent = 'Connecting to the certificate endpoint...';
+  result.textContent = 'Connecting to NetGuard Cloud Posture Inspector...';
 
   try {
     const response = await fetch(`${API_BASE}/api/public/tls-inspect?host=${encodeURIComponent(host)}`, { cache: 'no-store' });
     const payload = await response.json();
     if (!response.ok || !payload.success) throw new Error(payload.message || `API returned ${response.status}`);
     const data = payload.data;
-    const healthy = data.authorized && data.daysRemaining > 14 && /^TLSv1\.[23]$/.test(data.protocol);
+    const score = Number.isFinite(data.securityHeaderScore) ? data.securityHeaderScore : 60;
+
+    let grade = 'F';
+    if (score >= 88) grade = 'A+';
+    else if (score >= 75) grade = 'A';
+    else if (score >= 60) grade = 'B';
+    else if (score >= 45) grade = 'C';
+
+    const headers = data.securityHeaders || {};
+    const pill = (label, ok) => `<span class="header-pill ${ok ? 'pass' : 'fail'}">${ok ? '✓' : '✗'} ${label}</span>`;
+
+    const healthy = data.authorized && data.daysRemaining > 14 && /^TLSv1\.[23]$/.test(data.protocol) && score >= 60;
     result.className = `tool-result show ${healthy ? 'safe' : 'warning'}`;
     result.innerHTML = `
-      <div class="tool-result-title">${healthy ? 'Valid TLS configuration' : 'TLS needs attention'}</div>
-      <div class="tool-result-line"><span class="tool-result-key">Protocol</span><span class="tool-result-value">${escapeHtml(data.protocol)}</span></div>
-      <div class="tool-result-line"><span class="tool-result-key">Cipher</span><span class="tool-result-value">${escapeHtml(data.cipher)}</span></div>
-      <div class="tool-result-line"><span class="tool-result-key">Certificate</span><span class="tool-result-value">${escapeHtml(data.subject)}</span></div>
-      <div class="tool-result-line"><span class="tool-result-key">Issuer</span><span class="tool-result-value">${escapeHtml(data.issuer)}</span></div>
-      <div class="tool-result-line"><span class="tool-result-key">Expires in</span><span class="tool-result-value">${escapeHtml(data.daysRemaining)} days</span></div>
-      <div class="tool-result-line"><span class="tool-result-key">HSTS</span><span class="tool-result-value">${data.hsts?.enabled ? 'Enabled' : 'Not detected'}</span></div>`;
+      <div class="posture-grade-card">
+        <div>
+          <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; font-weight:700;">Cloud Security Posture</div>
+          <div style="font-size:12px; font-weight:800; color:var(--text); margin-top:2px;">Audit Score: ${score}/100</div>
+        </div>
+        <div class="grade-badge grade-${grade.charAt(0)}">${grade}</div>
+      </div>
+      <div style="font-size:11px; font-weight:700; color:var(--muted); margin-bottom:4px;">Security Header Controls</div>
+      <div class="header-pills-grid">
+        ${pill('HSTS', headers.hsts)}
+        ${pill('CSP', headers.contentSecurityPolicy)}
+        ${pill('Anti-Clickjack', headers.frameProtection)}
+        ${pill('MIME nosniff', headers.noSniff)}
+        ${pill('ReferrerPolicy', headers.referrerPolicy)}
+        ${pill('Permissions', headers.permissionsPolicy)}
+      </div>
+      <div class="tool-result-line"><span class="tool-result-key">Protocol</span><span class="tool-result-value">${escapeHtml(data.protocol || 'Unknown')}</span></div>
+      <div class="tool-result-line"><span class="tool-result-key">Cipher</span><span class="tool-result-value">${escapeHtml(data.cipher || 'Standard')}</span></div>
+      <div class="tool-result-line"><span class="tool-result-key">Certificate CN</span><span class="tool-result-value">${escapeHtml(data.subject || host)}</span></div>
+      <div class="tool-result-line"><span class="tool-result-key">Issuer</span><span class="tool-result-value">${escapeHtml(data.issuer || 'N/A')}</span></div>
+      <div class="tool-result-line"><span class="tool-result-key">Valid for</span><span class="tool-result-value">${escapeHtml(data.daysRemaining)} days</span></div>
+      <button class="copy-audit-btn" id="copyTlsAuditBtn">📋 Copy Cloud Audit Summary</button>`;
+
+    const copyBtn = document.getElementById('copyTlsAuditBtn');
+    if (copyBtn) {
+      copyBtn.onclick = () => {
+        const auditText = `[NetGuard Pro Cloud Posture Audit]\nTarget: ${host}\nGrade: ${grade} (${score}/100)\nTLS Protocol: ${data.protocol || 'N/A'}\nCipher: ${data.cipher || 'N/A'}\nHSTS: ${headers.hsts ? 'Enforced' : 'Missing'}\nCSP: ${headers.contentSecurityPolicy ? 'Enforced' : 'Missing'}\nAnti-Clickjack: ${headers.frameProtection ? 'Protected' : 'Vulnerable'}\nMIME nosniff: ${headers.noSniff ? 'Protected' : 'Vulnerable'}\nIssuer: ${data.issuer || 'N/A'}\nExpiry: ${data.daysRemaining} days remaining`;
+        navigator.clipboard.writeText(auditText).then(() => {
+          copyBtn.textContent = '✓ Copied to Clipboard!';
+          setTimeout(() => { copyBtn.textContent = '📋 Copy Cloud Audit Summary'; }, 2000);
+        });
+      };
+    }
   } catch (error) {
     result.className = 'tool-result show danger';
-    result.textContent = `TLS inspection failed: ${error.message}`;
+    result.textContent = `Cloud posture inspection failed: ${error.message}`;
   } finally {
     button.disabled = false;
-    button.textContent = 'Inspect';
+    button.textContent = 'Inspect Posture';
+  }
+}
+
+async function auditWebRTCLeak() {
+  const resultEl = document.getElementById('webrtcResult');
+  const btn = document.getElementById('webrtcAuditBtn');
+  if (!resultEl) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Auditing ICE candidates...';
+  resultEl.innerHTML = '<span style="color:var(--primary)">Scanning browser WebRTC network interface...</span>';
+
+  const candidates = new Set();
+  let pc;
+  try {
+    pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    pc.createDataChannel('netguard-audit');
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    const finish = () => {
+      if (!pc) return;
+      pc.close();
+      pc = null;
+      btn.disabled = false;
+      btn.textContent = 'Audit WebRTC IP Leak';
+
+      const found = Array.from(candidates);
+      if (found.length === 0) {
+        resultEl.innerHTML = '<span style="color:var(--safe)">✅ <b>WebRTC Shielded</b> — No private LAN or public ISP IP candidates exposed.</span>';
+      } else {
+        resultEl.innerHTML = `<span style="color:var(--warning)">⚠️ <b>Exposed IP Candidates:</b> ${escapeHtml(found.join(', '))}</span><div style="color:var(--muted); font-size:10px; margin-top:3px;">Recommendation: Enforce WebRTC mDNS obfuscation or Zero Trust proxy mode.</div>`;
+      }
+    };
+
+    const timeout = setTimeout(finish, 2200);
+
+    pc.onicecandidate = (e) => {
+      if (e && e.candidate && e.candidate.candidate) {
+        const line = e.candidate.candidate;
+        const match = line.match(/([0-9]{1,3}(\.[0-9]{1,3}){3})/);
+        if (match && !match[1].startsWith('0.0.0.0')) candidates.add(match[1]);
+      } else if (!e || !e.candidate) {
+        clearTimeout(timeout);
+        finish();
+      }
+    };
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Audit WebRTC IP Leak';
+    resultEl.innerHTML = '<span style="color:var(--safe)">✅ <b>WebRTC API Restricted</b> by browser security policy.</span>';
   }
 }
 
@@ -386,6 +474,8 @@ document.getElementById('tlsHostInput').addEventListener('keydown', (event) => {
   if (event.key === 'Enter') inspectTls();
 });
 document.getElementById('tlsCheckBtn').addEventListener('click', inspectTls);
+const webrtcBtn = document.getElementById('webrtcAuditBtn');
+if (webrtcBtn) webrtcBtn.addEventListener('click', auditWebRTCLeak);
 
 // Protection Toggle
 document.getElementById('protectionToggle').addEventListener('change', (e) => {

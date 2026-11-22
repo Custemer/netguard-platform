@@ -1,14 +1,17 @@
 {
-  "latestVersion": "3.5.0",
+  "latestVersion": "3.6.5",
   "downloadUrl": "/downloads/netguard-pro-extension.zip",
-  "publishedAt": "2026-07-22",
+  "publishedAt": "2026-11-20",
   "minimumChromeVersion": "120",
-  "sha256": "531a94528d1fc51596fe803ea715dddb9b140d86d33ceb056a5073f27b55cef4",
+  "sha256": "CEAA31717D310164B87EBA6B17AF32B4D9F7939A57D43C7B85053A792465AE98",
   "changelog": [
-    "Added a full-page blurred warning for high-confidence unsafe websites",
-    "Added a visible 10-second countdown with automatic return to safety",
-    "Added Continue Anyway and Go Back controls with decision logging",
-    "Added one shared URL risk engine for automatic and manual scans",
-    "Added an independent rate-limited administrator recovery login for demonstrations"
+    "Added algorithmic Levenshtein distance & visual homoglyphs typosquatting heuristics in risk engine",
+    "Added on-device Shannon Entropy DGA domain botnet detection (H >= 3.65 bits)",
+    "Added complete MITRE ATT&CK Enterprise Framework technique mapping across all threats",
+    "Added Cloud Security Posture (CSPM) grading (A+ to F) and HTTP security headers compliance auditor in popup",
+    "Added WebRTC IP Leakage & STUN ICE candidate privacy shield in extension popup",
+    "Added SIEM & Incident Webhook Dispatcher (Discord/Slack/SOC) in cloud settings and backend",
+    "Added Empirical Benchmark & Evaluation Engine with 200-sample Confusion Matrix & LaTeX thesis export",
+    "Added SOC Incident Remediation Playbook generator with 1-click dossier export in Threats dashboard"
   ]
 }
