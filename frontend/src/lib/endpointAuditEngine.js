@@ -144,6 +144,16 @@ function levenshteinDistance(a, b) {
 
 /**
  * Evaluates a single process or service using NetGuard's multi-layered heuristic safety algorithm.
+ * 
+ * @param {Object} proc
+ * @param {string} proc.name - Executable name (e.g., 'xmrig.exe')
+ * @param {number} proc.pid - Process Identifier
+ * @param {string} proc.path - Full path to executable
+ * @param {number} proc.cpuPercent - Instantaneous CPU %
+ * @param {number} proc.memoryMb - Memory working set in MB
+ * @param {number[]} [proc.openPorts] - Open listening network ports
+ * @param {boolean} [proc.isSigned] - Cryptographic digital signature status
+ * @returns {Object} Evaluation report containing riskScore, category, status, and verdict
  */
 export function auditProcess(proc) {
   const name = String(proc?.name || '').trim().toLowerCase();
@@ -156,10 +166,11 @@ export function auditProcess(proc) {
 
   // 1. Core System Whitelist Guard (Zero OS File Corruption Guarantee)
   if (CORE_SYSTEM_WHITELIST.has(name)) {
+    // If it's a core system process, verify it is located in Windows system directories
     const isStandardWinDir = lowerPath.includes('c:\\windows\\system32') ||
                              lowerPath.includes('c:\\windows\\syswow64') ||
                              lowerPath.includes('c:\\windows\\systemapps') ||
-                             path === '';
+                             path === ''; // Kernel / System virtual processes have empty paths
     
     if (isStandardWinDir) {
       return {
@@ -216,6 +227,7 @@ export function auditProcess(proc) {
     category = 'HOMOGLYPH_PROCESS_SPOOF';
     reasons.push(`Process name '${proc.name}' is an intentional typosquat/spoof of a critical Windows system component`);
   } else {
+    // Check Levenshtein distance against core system names
     for (const sysName of CORE_SYSTEM_WHITELIST) {
       if (sysName.length > 5) {
         const dist = levenshteinDistance(name, sysName);
@@ -256,8 +268,10 @@ export function auditProcess(proc) {
     reasons.push(`Elevated background CPU consumption (${cpu.toFixed(1)}%)`);
   }
 
+  // Cap risk score between 0 and 100
   riskScore = Math.min(100, Math.max(0, riskScore));
 
+  // Determine classification severity
   let severity = 'safe';
   let actionRecommended = 'ALLOW';
 
@@ -289,6 +303,9 @@ export function auditProcess(proc) {
   };
 }
 
+/**
+ * Filter and batch audit a list of running processes.
+ */
 export function auditProcessList(processes) {
   if (!Array.isArray(processes)) return [];
   return processes.map(auditProcess);

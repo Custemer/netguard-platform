@@ -1,6 +1,6 @@
 import {
   Shield, Globe, Lock, Zap, Eye, Brain, Cloud, Download, Activity,
-  Cpu, CheckCircle, Terminal, Power, HardDrive, Wifi, ShieldAlert
+  Cpu, CheckCircle, Terminal, Power, HardDrive, Wifi, ShieldAlert, ShieldCheck
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';

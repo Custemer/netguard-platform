@@ -547,10 +547,22 @@ router.get('/website-report', authenticate, async (req, res) => {
     startDate.setUTCHours(0, 0, 0, 0);
     startDate.setUTCDate(startDate.getUTCDate() - (days - 1));
 
-    const site = await ProtectedSite.findOne({
-      _id: req.query.siteId,
-      userId: req.user._id,
-    }).lean();
+    const mongoose = require('mongoose');
+    let site = null;
+    if (req.query.siteId && mongoose.Types.ObjectId.isValid(req.query.siteId)) {
+      site = await ProtectedSite.findOne({
+        _id: req.query.siteId,
+        userId: req.user._id,
+      }).lean();
+    }
+
+    // If siteId not specified or not found, fall back to user's first/latest registered protected site
+    if (!site) {
+      site = await ProtectedSite.findOne({
+        userId: req.user._id,
+      }).sort({ createdAt: -1 }).lean();
+    }
+
     if (!site) return res.status(404).json({ success: false, message: 'Select a valid protected website.' });
 
     const match = {

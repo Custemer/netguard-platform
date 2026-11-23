@@ -21,7 +21,7 @@ const fallbackRelease = {
 
 export default function Install() {
   const [release, setRelease] = useState(fallbackRelease);
-  const [activeTab, setActiveTab] = useState('agent');
+  const [activeTab, setActiveTab] = useState('agent'); // 'agent' or 'extension'
 
   useEffect(() => {
     fetch('/release.json', { cache: 'no-store' })
@@ -64,6 +64,7 @@ export default function Install() {
             and the <strong>Windows Endpoint Agent</strong> for host process protection.
           </p>
 
+          {/* Toggle Tab */}
           <div className="inline-flex bg-surface p-1 rounded-xl border border-border mt-8">
             <button
               onClick={() => setActiveTab('agent')}
@@ -88,6 +89,7 @@ export default function Install() {
           </div>
         </section>
 
+        {/* Tab 1: Endpoint Agent Guide */}
         {activeTab === 'agent' && (
           <div className="space-y-10 animate-fade-in">
             <div className="card text-center p-8 bg-surface/30 border-primary/30">
@@ -150,6 +152,7 @@ export default function Install() {
           </div>
         )}
 
+        {/* Tab 2: Chrome Extension Guide */}
         {activeTab === 'extension' && (
           <div className="space-y-10 animate-fade-in">
             <div className="card text-center p-8 bg-surface/30">
@@ -186,6 +189,7 @@ export default function Install() {
           </div>
         )}
 
+        {/* Changelog & Zero Corruption Guarantee */}
         <section className="grid md:grid-cols-2 gap-6 mt-12">
           <article className="card">
             <div className="flex items-center gap-2 mb-3">

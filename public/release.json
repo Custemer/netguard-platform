@@ -1,14 +1,17 @@
 {
-  "latestVersion": "3.5.0",
+  "latestVersion": "3.6.5",
   "downloadUrl": "/downloads/netguard-pro-extension.zip",
-  "publishedAt": "2026-07-22",
+  "agentDownloadUrl": "/downloads/NetGuard-Endpoint-Agent.bat",
+  "agentExeUrl": "/downloads/NetGuard-Endpoint-Agent.exe",
+  "agentZipUrl": "/downloads/netguard-endpoint-agent.zip",
+  "publishedAt": "2026-11-23",
   "minimumChromeVersion": "120",
-  "sha256": "531a94528d1fc51596fe803ea715dddb9b140d86d33ceb056a5073f27b55cef4",
+  "sha256": "d7afb1f6c263e6439ea4be8b82086227b2ff99570a691dfd7660667a7854a6cc",
   "changelog": [
-    "Added a full-page blurred warning for high-confidence unsafe websites",
-    "Added a visible 10-second countdown with automatic return to safety",
-    "Added Continue Anyway and Go Back controls with decision logging",
-    "Added one shared URL risk engine for automatic and manual scans",
-    "Added an independent rate-limited administrator recovery login for demonstrations"
+    "Integrated Windows Endpoint Host Agent (v1.0.0) with local loopback bridge on port 48123",
+    "Added Cloud Performance & Shield tab with real-time internet speed (Mbps) and latency telemetry",
+    "Added Master Power Switch with Zero OS File Corruption guarantee",
+    "Heuristic Process & Service Auditing engine protecting core Windows binaries",
+    "User Authorization prompt prior to terminating unauthorized background daemons"
   ]
 }

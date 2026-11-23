@@ -26,7 +26,7 @@ export default function Performance() {
     uptimeSeconds: 14200
   });
   const [processes, setProcesses] = useState([]);
-  const [filterTab, setFilterTab] = useState('all');
+  const [filterTab, setFilterTab] = useState('all'); // all, blocked, high_risk, system
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProcessForTermination, setSelectedProcessForTermination] = useState(null);
   const [isTerminating, setIsTerminating] = useState(false);
@@ -39,6 +39,7 @@ export default function Performance() {
     { time: '18:30:50', download: 48.6, upload: 14.2 },
   ]);
 
+  // Initial demo / simulated processes if agent is offline
   const fallbackProcesses = useMemo(() => [
     {
       pid: 4892,
@@ -92,6 +93,7 @@ export default function Performance() {
     }
   ], []);
 
+  // Poll Local Agent
   useEffect(() => {
     let isMounted = true;
 
@@ -120,6 +122,7 @@ export default function Performance() {
             setMetrics(metricsData);
             setProcesses(procData.processes || []);
 
+            // Update network history chart
             const nowTime = new Date().toLocaleTimeString();
             setNetworkHistory((prev) => {
               const updated = [...prev, {
@@ -133,8 +136,10 @@ export default function Performance() {
           return;
         }
       } catch (err) {
+        // Agent offline - use simulated fallback
         if (isMounted) {
           setAgentConnected(false);
+          // Audit the fallback processes locally using the engine
           const auditedFallback = auditProcessList(fallbackProcesses).map((p) => {
             if (p.riskScore >= 75 && shieldActive) {
               return { ...p, status: 'BLOCKED' };
@@ -143,6 +148,7 @@ export default function Performance() {
           });
           setProcesses(auditedFallback);
 
+          // Synthesize slight jitter in speed for realistic live presentation
           setMetrics((prev) => {
             const dl = Number((48 + (Math.random() * 8 - 4)).toFixed(1));
             const ul = Number((14 + (Math.random() * 3 - 1.5)).toFixed(1));
@@ -177,6 +183,7 @@ export default function Performance() {
     };
   }, [fallbackProcesses, shieldActive]);
 
+  // Master Power Button Toggle
   const toggleShield = async () => {
     const nextState = !shieldActive;
     setShieldActive(nextState);
@@ -188,7 +195,9 @@ export default function Performance() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ enabled: nextState })
         });
-      } catch (e) {}
+      } catch (e) {
+        // Fallback handled locally
+      }
     }
 
     if (nextState) {
@@ -198,6 +207,7 @@ export default function Performance() {
     }
   };
 
+  // Authorize Process Termination (Safe Handshake)
   const handleConfirmTermination = async () => {
     if (!selectedProcessForTermination) return;
     setIsTerminating(true);
@@ -224,6 +234,7 @@ export default function Performance() {
         });
       }
 
+      // Update state locally
       setProcesses((prev) =>
         prev.map((p) => (p.pid === target.pid ? { ...p, status: 'BLOCKED', riskScore: p.riskScore, severity: p.severity } : p))
       );
@@ -237,6 +248,7 @@ export default function Performance() {
     }
   };
 
+  // Whitelist Process
   const handleWhitelist = async (proc) => {
     try {
       if (agentConnected) {
@@ -255,6 +267,7 @@ export default function Performance() {
     }
   };
 
+  // Filtered Process List
   const filteredProcesses = useMemo(() => {
     return processes.filter((p) => {
       const matchesSearch =
@@ -273,6 +286,7 @@ export default function Performance() {
 
   return (
     <div className="space-y-6 pb-12">
+      {/* Top Banner & Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-border p-6 rounded-2xl shadow-lg relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -294,6 +308,7 @@ export default function Performance() {
             </div>
           </div>
 
+          {/* Connection status pill */}
           <div className="flex items-center gap-3 mt-3">
             <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${
               agentConnected
@@ -318,6 +333,7 @@ export default function Performance() {
           </div>
         </div>
 
+        {/* Master Power Button Toggle */}
         <div className="relative z-10 flex items-center gap-4 bg-surface/50 border border-border p-3.5 rounded-xl">
           <div className="text-right">
             <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Endpoint Shield</div>
@@ -340,7 +356,9 @@ export default function Performance() {
         </div>
       </div>
 
+      {/* KPI Stat Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Internet Speed */}
         <div className="stat-card">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Internet Speed</span>
@@ -362,6 +380,7 @@ export default function Performance() {
           </div>
         </div>
 
+        {/* CPU Utilization */}
         <div className="stat-card">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-gray-400">CPU Load</span>
@@ -387,6 +406,7 @@ export default function Performance() {
           </div>
         </div>
 
+        {/* RAM Memory */}
         <div className="stat-card">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-gray-400">RAM Memory</span>
@@ -408,6 +428,7 @@ export default function Performance() {
           </div>
         </div>
 
+        {/* Intercepted Threats */}
         <div className="stat-card">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Blocked Services</span>
@@ -428,6 +449,7 @@ export default function Performance() {
         </div>
       </div>
 
+      {/* Network Bandwidth Real-Time Area Chart */}
       <div className="card">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <div>
@@ -471,6 +493,7 @@ export default function Performance() {
         </div>
       </div>
 
+      {/* Unauthorized Background Services & Heuristic Auditor */}
       <div className="card space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
@@ -483,6 +506,7 @@ export default function Performance() {
             </p>
           </div>
 
+          {/* Search & Tabs */}
           <div className="flex flex-wrap items-center gap-3">
             <input
               type="text"
@@ -515,6 +539,7 @@ export default function Performance() {
           </div>
         </div>
 
+        {/* Process Table */}
         <div className="overflow-x-auto border border-border rounded-xl">
           <table className="w-full text-left text-xs">
             <thead className="bg-surface/60 text-gray-400 uppercase tracking-wider border-b border-border">
@@ -537,20 +562,24 @@ export default function Performance() {
               ) : (
                 filteredProcesses.map((proc) => (
                   <tr key={`${proc.pid}-${proc.name}`} className="hover:bg-white/5 transition-colors">
+                    {/* Name & PID */}
                     <td className="py-3 px-4">
                       <div className="font-semibold text-gray-200">{proc.name}</div>
                       <div className="text-[11px] text-gray-500 font-mono">PID: {proc.pid}</div>
                     </td>
 
+                    {/* Path */}
                     <td className="py-3 px-4 max-w-xs truncate text-gray-400" title={proc.path}>
                       {proc.path}
                     </td>
 
+                    {/* Resources */}
                     <td className="py-3 px-4">
                       <div className="text-gray-200 tabular-nums">{proc.cpuPercent}% CPU</div>
                       <div className="text-[11px] text-gray-500 tabular-nums">{proc.memoryMb} MB RAM</div>
                     </td>
 
+                    {/* Heuristic Risk Score */}
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold ${
@@ -570,6 +599,7 @@ export default function Performance() {
                       )}
                     </td>
 
+                    {/* Status & Category */}
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         {proc.status === 'BLOCKED' ? (
@@ -591,6 +621,7 @@ export default function Performance() {
                       </div>
                     </td>
 
+                    {/* Actions */}
                     <td className="py-3 px-4 text-right">
                       {proc.isProtectedSystem ? (
                         <span className="text-[11px] text-gray-500 font-medium px-2 py-1 bg-surface rounded border border-border inline-flex items-center gap-1">
@@ -625,6 +656,7 @@ export default function Performance() {
         </div>
       </div>
 
+      {/* Permission & Confirmation Modal */}
       {selectedProcessForTermination && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-border max-w-lg w-full rounded-2xl p-6 shadow-2xl relative space-y-4">

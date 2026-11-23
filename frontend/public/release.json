@@ -6,7 +6,7 @@
   "agentZipUrl": "/downloads/netguard-endpoint-agent.zip",
   "publishedAt": "2026-11-23",
   "minimumChromeVersion": "120",
-  "sha256": "531a94528d1fc51596fe803ea715dddb9b140d86d33ceb056a5073f27b55cef4",
+  "sha256": "d7afb1f6c263e6439ea4be8b82086227b2ff99570a691dfd7660667a7854a6cc",
   "changelog": [
     "Integrated Windows Endpoint Host Agent (v1.0.0) with local loopback bridge on port 48123",
     "Added Cloud Performance & Shield tab with real-time internet speed (Mbps) and latency telemetry",
