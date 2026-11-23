@@ -1,4 +1,4 @@
-# NetGuard Pro Platform v3.5.1
+# NetGuard Pro Platform v3.6.5
 
 Platform v3.5.1 fixes the shared Render API quota that could disable dashboard buttons and sign-in. It gives every verified JWT its own protected request bucket, keeps health/Google OAuth/admin recovery outside the shared quota, preserves sessions during temporary 429/network failures, and deduplicates API error notifications. The Chrome extension remains v3.5.0 with its blurred unsafe-site interstitial, 10-second safety return, Continue/Back decisions, and server-side administrator recovery login.
 
