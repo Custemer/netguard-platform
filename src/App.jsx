@@ -7,6 +7,7 @@ import Install from './pages/Install';
 import Layout from './components/Layout';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Performance = lazy(() => import('./pages/Performance'));
 const Threats = lazy(() => import('./pages/Threats'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Reports = lazy(() => import('./pages/Reports'));
@@ -54,11 +55,12 @@ export default function App() {
 
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="performance" element={<Performance />} />
         <Route path="threats" element={<Threats />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="reports" element={<Reports />} />
         <Route path="sites" element={<ProtectedSites />} />
-        <Route path="attack-sim" element={<AttackSimulator />} />
+        <Route path="attack-sim" element={<AdminRoute><AttackSimulator /></AdminRoute>} />
         <Route path="settings" element={<Settings />} />
         <Route path="admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
       </Route>

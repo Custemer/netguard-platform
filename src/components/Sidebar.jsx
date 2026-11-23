@@ -1,17 +1,17 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  Shield, LayoutDashboard, AlertTriangle, Globe, Settings, BarChart3, FileText,
+  Shield, LayoutDashboard, Activity, AlertTriangle, Globe, Settings, BarChart3, FileText,
   Users, LogOut, ChevronRight, Crosshair
 } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', end: true },
+  { to: '/performance', icon: Activity, label: 'Performance & Shield' },
   { to: '/threats', icon: AlertTriangle, label: 'Threats' },
   { to: '/analytics', icon: BarChart3, label: 'Network Analytics' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/sites', icon: Globe, label: 'Protected Sites' },
-  { to: '/attack-sim', icon: Crosshair, label: 'Attack Simulator', accent: 'danger' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -66,7 +66,22 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
         {isAdmin && (
           <>
             <div className="border-t border-border my-3"></div>
-            <div className="px-3 py-1 text-xs font-semibold text-gray-600 uppercase tracking-wider">Admin</div>
+            <div className="px-3 py-1 text-xs font-semibold text-gray-600 uppercase tracking-wider">Admin Controls</div>
+            <NavLink
+              to="/attack-sim"
+              onClick={onClose}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
+                  isActive
+                    ? 'bg-danger/10 text-danger'
+                    : 'text-danger/80 hover:text-danger hover:bg-danger/5'
+                }`
+              }
+            >
+              <Crosshair className="w-5 h-5 text-danger" />
+              <span>Attack Simulator</span>
+              <ChevronRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-50 transition-opacity" />
+            </NavLink>
             <NavLink
               to="/admin"
               onClick={onClose}
@@ -80,6 +95,7 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
             >
               <Users className="w-5 h-5" />
               <span>Admin Panel</span>
+              <ChevronRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-50 transition-opacity" />
             </NavLink>
           </>
         )}
