@@ -76,7 +76,7 @@ app.get('/api/health', (_req, res) => {
   res.json({
     success: true,
     message: 'NetGuard API is running',
-    version: '3.5.1',
+    version: '3.6.5',
     adminRecoveryConfigured: adminLoginIsConfigured(),
     apiRateLimitPerClient: globalApiLimit(),
     googleOAuth: googleOAuthEnabled,
@@ -100,7 +100,7 @@ app.use((error, _req, res, _next) => {
 const PORT = Number(process.env.PORT) || 5000;
 connectDB()
   .then(() => app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[server] NetGuard API v3.5.1 listening on ${PORT}`);
+    console.log(`[server] NetGuard API v3.6.5 listening on ${PORT}`);
   }))
   .catch((error) => {
     console.error('[server] Database connection failed:', error.message);

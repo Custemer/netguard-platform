@@ -6,29 +6,15 @@ import Login from './pages/Login';
 import Install from './pages/Install';
 import Layout from './components/Layout';
 
-/* Lazy pages load as separate chunks. After a redeploy, a browser holding an
-   old cached app may request a chunk that no longer exists and would show a
-   blank page. Retry once, and if it still fails, reload once to pick up the
-   new build (guarded so it cannot loop). */
-function lazyRetry(dynamicImport) {
-  return lazy(() => dynamicImport().catch((error) => {
-    try {
-      if (!sessionStorage.getItem('ng-chunk-reloaded')) {
-        sessionStorage.setItem('ng-chunk-reloaded', '1');
-        window.location.reload();
-      }
-    } catch (_) { /* storage unavailable — just surface the error */ }
-    throw error;
-  }));
-}
-
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Performance = lazy(() => import('./pages/Performance'));
 const Threats = lazy(() => import('./pages/Threats'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Reports = lazy(() => import('./pages/Reports'));
 const ProtectedSites = lazy(() => import('./pages/ProtectedSites'));
 const Settings = lazy(() => import('./pages/Settings'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+const AttackSimulator = lazy(() => import('./pages/AttackSimulator'));
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -69,10 +55,12 @@ export default function App() {
 
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="performance" element={<Performance />} />
         <Route path="threats" element={<Threats />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="reports" element={<Reports />} />
         <Route path="sites" element={<ProtectedSites />} />
+        <Route path="attack-sim" element={<AttackSimulator />} />
         <Route path="settings" element={<Settings />} />
         <Route path="admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
       </Route>

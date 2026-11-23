@@ -1,17 +1,17 @@
 {
   "latestVersion": "3.6.5",
   "downloadUrl": "/downloads/netguard-pro-extension.zip",
-  "publishedAt": "2026-11-20",
+  "agentDownloadUrl": "/downloads/NetGuard-Endpoint-Agent.bat",
+  "agentExeUrl": "/downloads/NetGuard-Endpoint-Agent.exe",
+  "agentZipUrl": "/downloads/netguard-endpoint-agent.zip",
+  "publishedAt": "2026-11-23",
   "minimumChromeVersion": "120",
-  "sha256": "CEAA31717D310164B87EBA6B17AF32B4D9F7939A57D43C7B85053A792465AE98",
+  "sha256": "531a94528d1fc51596fe803ea715dddb9b140d86d33ceb056a5073f27b55cef4",
   "changelog": [
-    "Added algorithmic Levenshtein distance & visual homoglyphs typosquatting heuristics in risk engine",
-    "Added on-device Shannon Entropy DGA domain botnet detection (H >= 3.65 bits)",
-    "Added complete MITRE ATT&CK Enterprise Framework technique mapping across all threats",
-    "Added Cloud Security Posture (CSPM) grading (A+ to F) and HTTP security headers compliance auditor in popup",
-    "Added WebRTC IP Leakage & STUN ICE candidate privacy shield in extension popup",
-    "Added SIEM & Incident Webhook Dispatcher (Discord/Slack/SOC) in cloud settings and backend",
-    "Added Empirical Benchmark & Evaluation Engine with 200-sample Confusion Matrix & LaTeX thesis export",
-    "Added SOC Incident Remediation Playbook generator with 1-click dossier export in Threats dashboard"
+    "Integrated Windows Endpoint Host Agent (v1.0.0) with local loopback bridge on port 48123",
+    "Added Cloud Performance & Shield tab with real-time internet speed (Mbps) and latency telemetry",
+    "Added Master Power Switch with Zero OS File Corruption guarantee",
+    "Heuristic Process & Service Auditing engine protecting core Windows binaries",
+    "User Authorization prompt prior to terminating unauthorized background daemons"
   ]
 }

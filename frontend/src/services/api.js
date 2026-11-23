@@ -1,5 +1,6 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import React from 'react';
 
 export const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 
